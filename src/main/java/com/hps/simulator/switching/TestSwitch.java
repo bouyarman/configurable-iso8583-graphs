@@ -8,10 +8,23 @@ public class TestSwitch {
     public SwitchResponse process(IsoMessage request) throws InterruptedException {
         long start = System.currentTimeMillis();
 
+        if ("0200".equals(request.getMti()) && Math.random() < 0.1) {
+            Thread.sleep(200);
+            long latency = System.currentTimeMillis() - start;
+            return new SwitchResponse(null, true, latency);
+        }
+
         Thread.sleep((long) (Math.random() * 100));
 
-        String responseCode = resolveResponseCode(request);
-        IsoMessage response = buildResponse(request, responseCode);
+        IsoMessage response;
+        if ("0200".equals(request.getMti())) {
+            String responseCode = resolveResponseCode(request);
+            response = buildAuthorizationResponse(request, responseCode);
+        } else if ("0400".equals(request.getMti())) {
+            response = buildReversalResponse(request, "00");
+        } else {
+            response = buildGenericErrorResponse(request, "96");
+        }
 
         long latency = System.currentTimeMillis() - start;
         return new SwitchResponse(response, false, latency);
@@ -37,7 +50,7 @@ public class TestSwitch {
         }
     }
 
-    private IsoMessage buildResponse(IsoMessage request, String responseCode) {
+    private IsoMessage buildAuthorizationResponse(IsoMessage request, String responseCode) {
         return new IsoMessageBuilder()
                 .withMti("0210")
                 .withField(3, request.getField(3))
@@ -46,6 +59,25 @@ public class TestSwitch {
                 .withField(11, request.getField(11))
                 .withField(39, responseCode)
                 .withField(41, request.getField(41))
+                .build();
+    }
+
+    private IsoMessage buildReversalResponse(IsoMessage request, String responseCode) {
+        return new IsoMessageBuilder()
+                .withMti("0410")
+                .withField(3, request.getField(3))
+                .withField(4, request.getField(4))
+                .withField(7, request.getField(7))
+                .withField(11, request.getField(11))
+                .withField(39, responseCode)
+                .withField(41, request.getField(41))
+                .build();
+    }
+
+    private IsoMessage buildGenericErrorResponse(IsoMessage request, String responseCode) {
+        return new IsoMessageBuilder()
+                .withMti("9999")
+                .withField(39, responseCode)
                 .build();
     }
 }
