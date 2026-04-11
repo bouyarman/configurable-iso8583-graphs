@@ -1,60 +1,32 @@
 package com.hps.simulator.app;
 
-import com.hps.simulator.metrics.MetricsCollector;
-import com.hps.simulator.network.IsoTcpClient;
-import com.hps.simulator.network.TcpTestSwitchServer;
-import com.hps.simulator.terminal.TerminalWorker;
-import com.hps.simulator.terminal.VirtualTerminal;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.hps.simulator.iso.BinaryIsoMessagePacker;
+import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
+import com.hps.simulator.iso.IsoMessage;
+import com.hps.simulator.scenario.AuthorizationScenario;
+import com.hps.simulator.util.HexUtils;
 
 public class SimulatorApplication {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        AuthorizationScenario scenario = new AuthorizationScenario();
 
-        int port = 5000;
+        IsoMessage request = scenario.createAuthorization("TERM0001", 10000);
 
-        TcpTestSwitchServer server = new TcpTestSwitchServer(port);
-        Thread serverThread = new Thread(server);
-        serverThread.setDaemon(true);
-        serverThread.start();
+        BinaryIsoMessagePacker packer = new BinaryIsoMessagePacker();
+        BinaryIsoMessageUnpacker unpacker = new BinaryIsoMessageUnpacker();
 
-        Thread.sleep(500);
+        byte[] packed = packer.pack(request);
 
-        List<VirtualTerminal> terminals = new ArrayList<VirtualTerminal>();
-        terminals.add(new VirtualTerminal("TERM001", 1));
-        terminals.add(new VirtualTerminal("TERM002", 2));
-        terminals.add(new VirtualTerminal("TERM003", 4));
+        System.out.println("Original message:");
+        System.out.println(request);
 
-        MetricsCollector metricsCollector = new MetricsCollector();
+        System.out.println("Packed bytes length: " + packed.length);
+        System.out.println("Packed hex:");
+        System.out.println(HexUtils.toHex(packed));
 
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+        IsoMessage unpacked = unpacker.unpack(packed);
 
-        for (VirtualTerminal terminal : terminals) {
-            long periodMillis = 1000L / terminal.getTps();
-
-            IsoTcpClient client = new IsoTcpClient("127.0.0.1", port, 1000);
-
-            scheduler.scheduleAtFixedRate(
-                    new TerminalWorker(terminal, metricsCollector, client),
-                    0,
-                    periodMillis,
-                    TimeUnit.MILLISECONDS
-            );
-        }
-
-        Thread.sleep(10000);
-
-        System.out.println("Stopping simulator...");
-        scheduler.shutdownNow();
-        scheduler.awaitTermination(5, TimeUnit.SECONDS);
-
-        metricsCollector.stop();
-        metricsCollector.printSummary();
-
-        server.stop();
+        System.out.println("Unpacked message:");
+        System.out.println(unpacked);
     }
 }
