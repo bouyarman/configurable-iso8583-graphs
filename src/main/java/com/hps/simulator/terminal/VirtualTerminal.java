@@ -9,6 +9,15 @@ public class VirtualTerminal {
     private final int tps;
     private final AuthorizationScenario scenario;
 
+    private boolean loggingEnabled;
+
+    public boolean isLoggingEnabled() {
+        return loggingEnabled;
+    }
+
+    public void setLoggingEnabled(boolean loggingEnabled) {
+        this.loggingEnabled = loggingEnabled;
+    }
     public VirtualTerminal(String terminalId, int tps) {
         if (tps <= 0) {
             throw new IllegalArgumentException("TPS must be greater than 0");

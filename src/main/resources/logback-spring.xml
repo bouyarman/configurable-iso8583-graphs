@@ -1,0 +1,34 @@
+<configuration>
+
+    <!-- REQUESTS -->
+    <appender name="REQUEST_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/requests.trc000</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- RESPONSES -->
+    <appender name="RESPONSE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/responses.trc000</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- REQUEST LOGGER -->
+    <logger name="REQUEST_LOGGER" level="INFO" additivity="false">
+        <appender-ref ref="REQUEST_FILE"/>
+    </logger>
+
+    <!-- RESPONSE LOGGER -->
+    <logger name="RESPONSE_LOGGER" level="INFO" additivity="false">
+        <appender-ref ref="RESPONSE_FILE"/>
+    </logger>
+
+    <!-- RIEN DANS LE TERMINAL -->
+    <root level="OFF"/>
+
+</configuration>

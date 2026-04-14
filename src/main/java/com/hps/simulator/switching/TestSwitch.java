@@ -5,16 +5,33 @@ import com.hps.simulator.iso.IsoMessageBuilder;
 
 public class TestSwitch {
 
+    private final int minLatencyMs;
+    private final int maxLatencyMs;
+    private final int timeoutLatencyMs;
+    private final double timeoutProbability;
+
+    public TestSwitch(int minLatencyMs, int maxLatencyMs, int timeoutLatencyMs, double timeoutProbability) {
+        this.minLatencyMs = minLatencyMs;
+        this.maxLatencyMs = maxLatencyMs;
+        this.timeoutLatencyMs = timeoutLatencyMs;
+        this.timeoutProbability = timeoutProbability;
+    }
+
     public SwitchResponse process(IsoMessage request) throws InterruptedException {
         long start = System.currentTimeMillis();
 
-        if ("0200".equals(request.getMti()) && Math.random() < 0.1) {
-            Thread.sleep(200);
+        if ("0200".equals(request.getMti()) && Math.random() < timeoutProbability) {
+            Thread.sleep(timeoutLatencyMs);
             long latency = System.currentTimeMillis() - start;
             return new SwitchResponse(null, true, latency);
         }
 
-        Thread.sleep((long) (Math.random() * 100));
+        int processingLatency = minLatencyMs;
+        if (maxLatencyMs > minLatencyMs) {
+            processingLatency = minLatencyMs + (int) (Math.random() * (maxLatencyMs - minLatencyMs + 1));
+        }
+
+        Thread.sleep(processingLatency);
 
         IsoMessage response;
         if ("0200".equals(request.getMti())) {

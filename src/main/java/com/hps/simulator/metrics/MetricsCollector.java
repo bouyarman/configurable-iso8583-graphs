@@ -1,91 +1,92 @@
 package com.hps.simulator.metrics;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MetricsCollector {
+
+    private final long startTime;
 
     private final AtomicLong totalTransactions = new AtomicLong(0);
     private final AtomicLong successCount = new AtomicLong(0);
     private final AtomicLong errorCount = new AtomicLong(0);
     private final AtomicLong timeoutCount = new AtomicLong(0);
-    private final AtomicLong totalLatencyMillis = new AtomicLong(0);
+    private final AtomicLong totalLatency = new AtomicLong(0);
 
-    private final ConcurrentHashMap<String, AtomicLong> transactionsByTerminal = new ConcurrentHashMap<String, AtomicLong>();
-
-    private final long startTimeMillis;
-    private volatile long endTimeMillis;
+    private long endTime;
 
     public MetricsCollector() {
-        this.startTimeMillis = System.currentTimeMillis();
+        this.startTime = System.currentTimeMillis();
     }
 
     public void recordTransactionResult(TransactionResult result) {
         totalTransactions.incrementAndGet();
-        totalLatencyMillis.addAndGet(result.getLatencyMillis());
 
-        AtomicLong counter = transactionsByTerminal.get(result.getTerminalId());
-        if (counter == null) {
-            AtomicLong newCounter = new AtomicLong(0);
-            AtomicLong existing = transactionsByTerminal.putIfAbsent(result.getTerminalId(), newCounter);
-            counter = (existing == null) ? newCounter : existing;
+        switch (result.getStatus()) {
+            case SUCCESS:
+                successCount.incrementAndGet();
+                break;
+            case ERROR:
+                errorCount.incrementAndGet();
+                break;
+            case TIMEOUT:
+                timeoutCount.incrementAndGet();
+                break;
         }
-        counter.incrementAndGet();
 
-        if (result.getStatus() == TransactionStatus.SUCCESS) {
-            successCount.incrementAndGet();
-        } else if (result.getStatus() == TransactionStatus.ERROR) {
-            errorCount.incrementAndGet();
-        } else if (result.getStatus() == TransactionStatus.TIMEOUT) {
-            timeoutCount.incrementAndGet();
-        }
+        totalLatency.addAndGet(result.getLatencyMillis());
     }
 
     public void stop() {
-        this.endTimeMillis = System.currentTimeMillis();
+        this.endTime = System.currentTimeMillis();
     }
+
+    // ======================
+    // GETTERS POUR UI
+    // ======================
 
     public long getTotalTransactions() {
         return totalTransactions.get();
     }
 
-    public long getDurationMillis() {
-        long end = (endTimeMillis == 0) ? System.currentTimeMillis() : endTimeMillis;
-        return end - startTimeMillis;
+    public long getSuccessCount() {
+        return successCount.get();
+    }
+
+    public long getErrorCount() {
+        return errorCount.get();
+    }
+
+    public long getTimeoutCount() {
+        return timeoutCount.get();
     }
 
     public double getGlobalTps() {
-        double durationSeconds = getDurationMillis() / 1000.0;
-        if (durationSeconds <= 0) {
-            return 0.0;
-        }
-        return totalTransactions.get() / durationSeconds;
+        long durationMillis = endTime - startTime;
+        if (durationMillis <= 0) return 0;
+
+        return (totalTransactions.get() * 1000.0) / durationMillis;
     }
 
-    public double getAverageLatencyMillis() {
+    public double getAverageLatency() {
         long total = totalTransactions.get();
-        if (total == 0) {
-            return 0.0;
-        }
-        return (double) totalLatencyMillis.get() / total;
+        if (total == 0) return 0;
+
+        return totalLatency.get() * 1.0 / total;
     }
+
+    // ======================
+    // OPTIONNEL (console)
+    // ======================
 
     public void printSummary() {
         System.out.println("========== SIMULATION SUMMARY ==========");
-        System.out.println("Duration (ms): " + getDurationMillis());
+        System.out.println("Duration (ms): " + (endTime - startTime));
         System.out.println("Total transactions: " + getTotalTransactions());
-        System.out.println("Success: " + successCount.get());
-        System.out.println("Error: " + errorCount.get());
-        System.out.println("Timeout: " + timeoutCount.get());
+        System.out.println("Success: " + getSuccessCount());
+        System.out.println("Error: " + getErrorCount());
+        System.out.println("Timeout: " + getTimeoutCount());
         System.out.println("Global TPS: " + String.format("%.2f", getGlobalTps()));
-        System.out.println("Average latency (ms): " + String.format("%.2f", getAverageLatencyMillis()));
-        System.out.println("Transactions by terminal:");
-
-        for (Map.Entry<String, AtomicLong> entry : transactionsByTerminal.entrySet()) {
-            System.out.println(" - " + entry.getKey() + ": " + entry.getValue().get());
-        }
-
+        System.out.println("Average latency (ms): " + String.format("%.2f", getAverageLatency()));
         System.out.println("========================================");
     }
 }

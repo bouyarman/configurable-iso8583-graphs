@@ -1,13 +1,16 @@
 package com.hps.simulator.terminal;
 
+import com.hps.simulator.iso.BinaryIsoMessagePacker;
+import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
 import com.hps.simulator.iso.IsoMessage;
-import com.hps.simulator.iso.IsoMessageParser;
-import com.hps.simulator.iso.IsoMessageSerializer;
 import com.hps.simulator.metrics.MetricsCollector;
 import com.hps.simulator.metrics.TransactionResult;
 import com.hps.simulator.metrics.TransactionStatus;
-import com.hps.simulator.network.IsoTcpClient;
+import com.hps.simulator.network.BinaryIsoTcpClient;
 import com.hps.simulator.scenario.ReversalScenario;
+import com.hps.simulator.util.HexUtils;
+
+import com.hps.simulator.logging.TransactionLogger;
 
 import java.net.SocketTimeoutException;
 
@@ -15,19 +18,19 @@ public class TerminalWorker implements Runnable {
 
     private final VirtualTerminal terminal;
     private final MetricsCollector metricsCollector;
-    private final IsoTcpClient tcpClient;
-    private final IsoMessageSerializer serializer;
-    private final IsoMessageParser parser;
+    private final BinaryIsoTcpClient tcpClient;
+    private final BinaryIsoMessagePacker packer;
+    private final BinaryIsoMessageUnpacker unpacker;
     private final ReversalScenario reversalScenario;
 
     public TerminalWorker(VirtualTerminal terminal,
                           MetricsCollector metricsCollector,
-                          IsoTcpClient tcpClient) {
+                          BinaryIsoTcpClient tcpClient) {
         this.terminal = terminal;
         this.metricsCollector = metricsCollector;
         this.tcpClient = tcpClient;
-        this.serializer = new IsoMessageSerializer();
-        this.parser = new IsoMessageParser();
+        this.packer = new BinaryIsoMessagePacker();
+        this.unpacker = new BinaryIsoMessageUnpacker();
         this.reversalScenario = new ReversalScenario();
     }
 
@@ -37,20 +40,25 @@ public class TerminalWorker implements Runnable {
             long start = System.currentTimeMillis();
 
             IsoMessage request = terminal.generateTransaction();
-            String rawRequest = serializer.serialize(request);
+            byte[] requestBytes = packer.pack(request);
 
-            System.out.println("[" + terminal.getTerminalId() + " | TPS=" + terminal.getTps() + "] Request:");
-            System.out.println(request);
-            System.out.println("Raw Request: " + rawRequest);
+            // ✅ LOG REQUEST
+            TransactionLogger.logRequest(
+                    "REQUEST | terminal=" + terminal.getTerminalId()
+                            + " | stan=" + request.getField(11)
+                            + " | mti=" + request.getMti()
+                            + "\n" + request.toString()
+                            + "\nHEX: " + HexUtils.toHex(requestBytes)
+            );
 
             TransactionStatus status;
             String responseCode = null;
 
             try {
-                String rawResponse = tcpClient.sendAndReceive(rawRequest);
+                byte[] responseBytes = tcpClient.sendAndReceive(requestBytes);
                 long latency = System.currentTimeMillis() - start;
 
-                IsoMessage response = parser.parse(rawResponse);
+                IsoMessage response = unpacker.unpack(responseBytes);
                 responseCode = response.getField(39);
 
                 if ("00".equals(responseCode)) {
@@ -59,12 +67,18 @@ public class TerminalWorker implements Runnable {
                     status = TransactionStatus.ERROR;
                 }
 
-                System.out.println("Raw Response: " + rawResponse);
-                System.out.println("Response:");
-                System.out.println(response);
-                System.out.println("Result => status=" + status
-                        + ", responseCode=" + responseCode
-                        + ", latency=" + latency + " ms");
+                // ✅ LOG RESPONSE
+                TransactionLogger.logResponse(
+                        "RESPONSE | terminal=" + terminal.getTerminalId()
+                                + " | stan=" + request.getField(11)
+                                + " | requestMti=" + request.getMti()
+                                + " | responseMti=" + response.getMti()
+                                + " | rc=" + responseCode
+                                + "\n" + response.toString()
+                                + "\nHEX: " + HexUtils.toHex(responseBytes)
+                                + "\nstatus=" + status
+                                + ", latency=" + latency + " ms"
+                );
 
                 TransactionResult result = new TransactionResult(
                         terminal.getTerminalId(),
@@ -82,8 +96,13 @@ public class TerminalWorker implements Runnable {
                 long latency = System.currentTimeMillis() - start;
                 status = TransactionStatus.TIMEOUT;
 
-                System.out.println("Result => TIMEOUT");
-                System.out.println("Generating reversal...");
+                // ✅ LOG TIMEOUT
+                TransactionLogger.logResponse(
+                        "TIMEOUT | terminal=" + terminal.getTerminalId()
+                                + " | stan=" + request.getField(11)
+                                + " | mti=" + request.getMti()
+                                + " | latency=" + latency + " ms"
+                );
 
                 sendReversal(request);
 
@@ -101,31 +120,68 @@ public class TerminalWorker implements Runnable {
             }
 
         } catch (Exception e) {
-            System.err.println("Error while processing terminal " + terminal.getTerminalId());
-            e.printStackTrace();
+            TransactionLogger.logResponse(
+                    "ERROR | " + terminal.getTerminalId() + " " + e.getMessage()
+            );
         }
     }
-
     private void sendReversal(IsoMessage originalRequest) {
         try {
             IsoMessage reversalRequest = reversalScenario.createReversal(originalRequest);
-            String rawReversalRequest = serializer.serialize(reversalRequest);
+            byte[] reversalRequestBytes = packer.pack(reversalRequest);
 
-            String rawReversalResponse = tcpClient.sendAndReceive(rawReversalRequest);
-            IsoMessage reversalResponse = parser.parse(rawReversalResponse);
+            byte[] reversalResponseBytes = tcpClient.sendAndReceive(reversalRequestBytes);
+            IsoMessage reversalResponse = unpacker.unpack(reversalResponseBytes);
+            if (terminal.isLoggingEnabled()) {
+                TransactionLogger.logRequest(
+                        requestPrefix("REVERSAL REQUEST", reversalRequest)
+                                + "\n" + reversalRequest.toString()
+                                + "\nHEX: " + HexUtils.toHex(reversalRequestBytes)
+                );
 
-            System.out.println("Reversal Request:");
-            System.out.println(reversalRequest);
-            System.out.println("Raw Reversal Request: " + rawReversalRequest);
+                TransactionLogger.logResponse(
+                        responsePrefix("REVERSAL RESPONSE", reversalResponse)
+                                + "\n" + reversalResponse.toString()
+                                + "\nHEX: " + HexUtils.toHex(reversalResponseBytes)
+                );
+            }
 
-            System.out.println("Reversal Response:");
-            System.out.println(reversalResponse);
-            System.out.println("Raw Reversal Response: " + rawReversalResponse);
 
         } catch (SocketTimeoutException e) {
-            System.out.println("Reversal also timed out.");
+            if (terminal.isLoggingEnabled()) {
+                System.out.println("Reversal also timed out.");
+
+            }
         } catch (Exception e) {
-            System.out.println("Error while sending reversal: " + e.getMessage());
+            if (terminal.isLoggingEnabled()) {
+                System.out.println("Error while sending reversal: " + e.getMessage());
+
+            }
         }
     }
+
+    private String safeField(IsoMessage message, int fieldNumber) {
+        if (message == null) {
+            return "N/A";
+        }
+
+        String value = message.getField(fieldNumber);
+        return value != null ? value : "N/A";
+    }
+
+    private String requestPrefix(String type, IsoMessage message) {
+        return type
+                + " | TERM=" + terminal.getTerminalId()
+                + " | STAN=" + safeField(message, 11)
+                + " | MTI=" + (message != null ? message.getMti() : "N/A");
+    }
+
+    private String responsePrefix(String type, IsoMessage message) {
+        return type
+                + " | TERM=" + terminal.getTerminalId()
+                + " | STAN=" + safeField(message, 11)
+                + " | MTI=" + (message != null ? message.getMti() : "N/A")
+                + " | RC=" + safeField(message, 39);
+    }
+
 }

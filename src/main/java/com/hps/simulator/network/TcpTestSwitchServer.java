@@ -24,8 +24,7 @@ public class TcpTestSwitchServer implements Runnable {
 
     public TcpTestSwitchServer(int port) {
         this.port = port;
-        this.testSwitch = new TestSwitch();
-        this.parser = new IsoMessageParser();
+        this.testSwitch = new TestSwitch(20, 100, 200, 0.1);        this.parser = new IsoMessageParser();
         this.serializer = new IsoMessageSerializer();
     }
 
