@@ -1,6 +1,7 @@
 package com.hps.simulator.terminal;
 
 import com.hps.simulator.iso.IsoMessage;
+import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.scenario.AuthorizationScenario;
 
 public class VirtualTerminal {
@@ -8,6 +9,7 @@ public class VirtualTerminal {
     private final String terminalId;
     private final int tps;
     private final AuthorizationScenario scenario;
+    private TerminalProfile profile;
 
     private boolean loggingEnabled;
 
@@ -30,7 +32,7 @@ public class VirtualTerminal {
 
     public IsoMessage generateTransaction() {
         long amount = (long) (Math.random() * 100000);
-        return scenario.createAuthorization(terminalId, amount);
+        return scenario.createAuthorization(terminalId, amount,profile);
     }
 
     public String getTerminalId() {
@@ -39,5 +41,13 @@ public class VirtualTerminal {
 
     public int getTps() {
         return tps;
+    }
+
+    public TerminalProfile getProfile() {
+        return profile;
+    }
+
+    public void setProfile(TerminalProfile profile) {
+        this.profile = profile;
     }
 }

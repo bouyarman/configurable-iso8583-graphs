@@ -76,6 +76,12 @@ public class TestSwitch {
                 .withField(11, request.getField(11))
                 .withField(39, responseCode)
                 .withField(41, request.getField(41))
+                .withField(42, request.getField(42))
+                .withField(43, request.getField(43))
+
+
+
+
                 .build();
     }
 
@@ -88,6 +94,10 @@ public class TestSwitch {
                 .withField(11, request.getField(11))
                 .withField(39, responseCode)
                 .withField(41, request.getField(41))
+                .withField(42, request.getField(42))
+                .withField(42, request.getField(44))
+
+
                 .build();
     }
 

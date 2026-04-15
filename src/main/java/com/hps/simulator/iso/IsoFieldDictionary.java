@@ -14,6 +14,8 @@ public final class IsoFieldDictionary {
         DEFINITIONS.put(11, new IsoFieldDefinition(11, 6, FieldType.FIXED));
         DEFINITIONS.put(39, new IsoFieldDefinition(39, 2, FieldType.FIXED));
         DEFINITIONS.put(41, new IsoFieldDefinition(41, 8, FieldType.FIXED));
+        DEFINITIONS.put(42, new IsoFieldDefinition(42, 15, FieldType.FIXED));
+        DEFINITIONS.put(43, new IsoFieldDefinition(43, 40, FieldType.FIXED));
     }
 
     private IsoFieldDictionary() {

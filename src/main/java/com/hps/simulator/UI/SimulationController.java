@@ -1,6 +1,9 @@
 package com.hps.simulator.UI;
 
+import com.hps.simulator.logging.RunManager;
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.profile.TerminalProfile;
+import com.hps.simulator.profile.TerminalProfileLoader;
 import com.hps.simulator.session.ConnectionService;
 import com.hps.simulator.session.SimulationRunner;
 import com.hps.simulator.session.SimulationSession;
@@ -10,7 +13,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
+
 import com.hps.simulator.network.BinaryTcpTestSwitchServer;
+
+import java.util.List;
 
 @Controller
 public class SimulationController {
@@ -51,6 +57,10 @@ public class SimulationController {
 
     @PostMapping("/connect")
     public String connect(@ModelAttribute("request") SimulationRequest request, Model model) {
+        List<TerminalProfile> profiles = TerminalProfileLoader.loadFromFile(
+                "C:/Users/hbouyarman/Downloads/PSTT/PSTT/pstt_conf/Data/c_vl_35_term_profiles.xml"
+        );
+
         if (sessionStore.hasSession()) {
             try {
                 sessionStore.getCurrentSession().closeAllClients();
@@ -60,20 +70,26 @@ public class SimulationController {
         }
 
         sessionStore.setLastRequest(request);
+        RunManager.initNewRun();
+
         switchServer.updateSwitchConfig(
                 request.getMinLatencyMs(),
                 request.getMaxLatencyMs(),
                 50,
                 0.1
         );
-        System.out.println("Switch config updated => min=" + request.getMinLatencyMs() + ", max=" + request.getMaxLatencyMs());
+
+        System.out.println("Switch config updated => min=" + request.getMinLatencyMs()
+                + ", max=" + request.getMaxLatencyMs());
+
         SimulationSession session = connectionService.createSimulationSession(
                 request.getHost(),
                 request.getPort(),
                 request.getTerminalCount(),
                 request.getTimeoutMillis(),
                 request.getTpsPerTerminal(),
-                request.isEnableLogs()
+                request.isEnableLogs(),
+                profiles
         );
 
         sessionStore.setCurrentSession(session);
@@ -83,7 +99,6 @@ public class SimulationController {
 
         return "index";
     }
-
     @GetMapping("/simulate")
     public String simulate(Model model) throws Exception {
         SimulationSession session = sessionStore.getCurrentSession();
