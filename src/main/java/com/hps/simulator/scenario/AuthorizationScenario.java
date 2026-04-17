@@ -27,8 +27,8 @@ public class AuthorizationScenario {
 
         System.out.println("PROFILE USED => " + profile.getOutletNo() + " | " + profile.getTermAddr());
 
-        String de42 = fit(profile.getOutletNo(), 15);
-        String de43 = fit(profile.getTermAddr(), 40);
+        String de42 = fit(profile != null ? profile.getOutletNo() : null, 15);
+        String de43 = fit(profile != null ? profile.getTermAddr() : null, 40);
 
         return new IsoMessageBuilder()
                 .withMti("0200")

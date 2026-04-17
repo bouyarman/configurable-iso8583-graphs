@@ -68,6 +68,9 @@ public class TestSwitch {
     }
 
     private IsoMessage buildAuthorizationResponse(IsoMessage request, String responseCode) {
+        String de42 = fit(request.getField(42), 15);
+        String de43 = fit(request.getField(43), 40);
+
         return new IsoMessageBuilder()
                 .withMti("0210")
                 .withField(3, request.getField(3))
@@ -76,8 +79,8 @@ public class TestSwitch {
                 .withField(11, request.getField(11))
                 .withField(39, responseCode)
                 .withField(41, request.getField(41))
-                .withField(42, request.getField(42))
-                .withField(43, request.getField(43))
+                .withField(42, de42)
+                .withField(43, de43)
 
 
 
@@ -86,6 +89,8 @@ public class TestSwitch {
     }
 
     private IsoMessage buildReversalResponse(IsoMessage request, String responseCode) {
+        String de42 = fit(request.getField(42), 15);
+        String de43 = fit(request.getField(43), 40);
         return new IsoMessageBuilder()
                 .withMti("0410")
                 .withField(3, request.getField(3))
@@ -94,8 +99,8 @@ public class TestSwitch {
                 .withField(11, request.getField(11))
                 .withField(39, responseCode)
                 .withField(41, request.getField(41))
-                .withField(42, request.getField(42))
-                .withField(42, request.getField(44))
+                .withField(42, de42)
+                .withField(43, de43)
 
 
                 .build();
@@ -106,5 +111,21 @@ public class TestSwitch {
                 .withMti("9999")
                 .withField(39, responseCode)
                 .build();
+    }
+    private String fit(String value, int length) {
+        if (value == null) {
+            value = "";
+        }
+
+        if (value.length() > length) {
+            return value.substring(0, length);
+        }
+
+        StringBuilder sb = new StringBuilder(value);
+        while (sb.length() < length) {
+            sb.append(' ');
+        }
+
+        return sb.toString();
     }
 }

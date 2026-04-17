@@ -13,8 +13,10 @@ public class IsoMessageBuilder {
         return this;
     }
 
-    public IsoMessageBuilder withField(int number, String value) {
-        message.setField(number, value);
+    public IsoMessageBuilder withField(int field, String value) {
+        if (value != null) {
+            message.setField(field, value);
+        }
         return this;
     }
 
