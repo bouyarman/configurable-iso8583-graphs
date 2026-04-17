@@ -1,0 +1,202 @@
+<?xml version="1.0"?>
+<P7_Config>
+<RootMsgInfoProperties >
+<MsgInfoProperties Name="PPWMMsgProperties" NbFields="128" NbBitmaps="2" MsgTypeType="4" MsgTypeLen="4" Protocol="1" ProtocolName="PPWM" ProtocolPrefix="PPWM" HeaderType="0" HeaderFormat="3" HeaderLen="16">
+
+<Field FieldNo="1" FieldType="0" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="0" Print="2" Pattern="" Label="ISO_BIT_MAP2" PropName=""/>
+<Field FieldNo="2" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="19" Print="0" Pattern="" Label="ISO_CARD_NBR" PropName=""/>
+<Field FieldNo="3" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="6" Print="0" Pattern="" Label="ISO_PROC_CODE" PropName=""/>
+<Field FieldNo="4" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ISO_TRANS_AMOUNT" PropName=""/>
+<Field FieldNo="5" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ISO_STLMNT_AMOUNT" PropName=""/>
+<Field FieldNo="6" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="12" Print="0" Pattern="" Label="ISO_BILLING_AMOUNT" PropName=""/>
+<Field FieldNo="7" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_XMIT_TIME" PropName=""/>
+<Field FieldNo="8" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="8" Print="0" Pattern="" Label="ISO_BILLING_AMOUNT_FEES" PropName=""/>
+<Field FieldNo="10" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="8" Print="0" Pattern="" Label="ISO_BILLING_CNVRSN_RATE" PropName=""/>
+<Field FieldNo="11" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="6" Print="0" Pattern="" Label="ISO_AUDIT_NBR" PropName=""/>
+<Field FieldNo="12" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ISO_TRANS_DATE_TIME" PropName=""/>
+<Field FieldNo="13" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="4" Print="0" Pattern="" Label="TRANS_DATE" PropName=""/>
+<Field FieldNo="14" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_EXPIRY_DATE" PropName=""/>
+<Field FieldNo="15" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="6" Print="0" Pattern="" Label="ISO_STLMNT_DATE" PropName=""/>
+<Field FieldNo="17" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_CAPTURE_DATE" PropName=""/>
+<Field FieldNo="18" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="4" Print="0" Pattern="" Label="ISO_MERCHANT_TYPE" PropName=""/>
+<Field FieldNo="19" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="3" Print="0" Pattern="" Label="ISO_ACQR_COUNTRY" PropName=""/>
+<Field FieldNo="20" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="3" Print="0" Pattern="" Label="ISO_PAN_COUNTRY" PropName=""/>
+<Field FieldNo="22" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ISO_POS_DATA" PropName=""/>
+<Field FieldNo="23" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="3" Print="0" Pattern="" Label="ISO_CARD_SEQUENCE_NBR" PropName=""/>
+<Field FieldNo="24" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="3" Print="0" Pattern="" Label="ISO_FUNCTION_CODE" PropName=""/>
+<Field FieldNo="25" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_MSG_REASON" PropName=""/>
+<Field FieldNo="26" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_ACCEPTOR_ACTIV_CODE" PropName=""/>
+<Field FieldNo="27" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="1" Print="0" Pattern="" Label="ISO_AUTHOR_ID_LENGTH" PropName=""/>
+<Field FieldNo="28" FieldType="0" FormatType="10" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="9" Print="0" Pattern="" Label="TRANS_FEE" PropName=""/>
+<Field FieldNo="29" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="9" Print="0" Pattern="" Label="TANS_SETTL_FEE" PropName=""/>
+<Field FieldNo="30" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="9" Print="0" Pattern="" Label="AMNT_TRANS_PROC_FEE" PropName=""/>
+<Field FieldNo="31" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="9" Print="0" Pattern="" Label="AMNT_SETTL_PROC_FEE" PropName=""/>
+<Field FieldNo="32" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="11" Print="0" Pattern="" Label="ISO_ACQR_ID" PropName=""/>
+<Field FieldNo="33" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="11" Print="0" Pattern="" Label="ISO_FORWD_ID" PropName=""/>
+<Field FieldNo="34" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="28" Print="0" Pattern="" Label="ISO_PAN_EXTENDED" PropName=""/>
+<Field FieldNo="35" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="37" Print="0" Pattern="" Label="ISO_T2_DATA" PropName=""/>
+<Field FieldNo="36" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="104" Print="0" Pattern="" Label="ISO_T3_DATA" PropName=""/>
+<Field FieldNo="37" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ISO_REFERENCE_NBR" PropName=""/>
+<Field FieldNo="38" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="6" Print="0" Pattern="" Label="ISO_AUTHOR_ID" PropName=""/>
+<Field FieldNo="39" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="3" Print="0" Pattern="" Label="ISO_RESPONSE_CODE" PropName=""/>
+<Field FieldNo="41" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="8" Print="0" Pattern="" Label="ISO_TERMINAL_NBR" PropName=""/>
+<Field FieldNo="42" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="15" Print="0" Pattern="" Label="ISO_OUTLET_NBR" PropName=""/>
+<Field FieldNo="43" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="99" Print="0" Pattern="" Label="ISO_TERMINAL_ADR" PropName=""/>
+
+<Field FieldNo="44" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_ADTNL_RESP_DATA" PropName=""/>
+
+<Field FieldNo="45" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="76" Print="0" Pattern="" Label="T1_DATA" PropName=""/>
+<Field FieldNo="46" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="ADTNL_DATA_ISO" PropName=""/>
+<Field FieldNo="47" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="ADTNL_DATA_NATL" PropName=""/>
+<Field FieldNo="48" FieldType="2" FormatType="6" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_ADTNL_DATA_PRIV" PropName="PPWM_F048_PROP"/>
+<Field FieldNo="49" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="3" Print="0" Pattern="" Label="ISO_TRANS_CRNCY" PropName=""/>
+<Field FieldNo="50" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="3" Print="0" Pattern="" Label="ISO_STLMNT_CRNCY" PropName=""/>
+<Field FieldNo="51" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="3" Print="0" Pattern="" Label="BILLING_CRNCY" PropName=""/>
+<Field FieldNo="52" FieldType="1" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="8" Print="0" Pattern="" Label="ISO_PIN_DATA" PropName=""/>
+<Field FieldNo="53" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="18" Print="0" Pattern="" Label="ISO_SECURITY_DATA" PropName=""/>
+<Field FieldNo="54" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="120" Print="0" Pattern="" Label="ISO_ADTNL_AMOUNTS" PropName=""/>
+<Field FieldNo="55" FieldType="4" FormatType="1" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="ISO_ICC_DATA" PropName="PPWM_F055_PROP"/>
+<Field FieldNo="56" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="45" Print="0" Pattern="" Label="ISO_ORIG_DATA" PropName=""/>
+<Field FieldNo="57" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_NAT_1" PropName=""/>
+<Field FieldNo="58" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_NAT_2" PropName=""/>
+<Field FieldNo="59" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="14" Print="0" Pattern="" Label="GEOGR_DATA" PropName=""/>
+<Field FieldNo="60" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="12" Print="0" Pattern="" Label="ADTNL_POS_INFO" PropName=""/>
+<Field FieldNo="61" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="36" Print="0" Pattern="" Label="OTHER_AMOUNTS" PropName=""/>
+<Field FieldNo="62" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_REDEMPTION_NUM" PropName=""/>
+<Field FieldNo="63" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_VERSIONS" PropName=""/>
+<Field FieldNo="64" FieldType="1" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_MAC1" PropName=""/>
+<Field FieldNo="67" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="2" Print="0" Pattern="" Label="EXT_PAYMENT_CODE" PropName=""/>
+<Field FieldNo="68" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="3" Print="0" Pattern="" Label="RECEIVER_COUNTRY" PropName=""/>
+<Field FieldNo="70" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="3" Print="0" Pattern="" Label="NW_MNGMT_INFO" PropName=""/>
+<Field FieldNo="71" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="8" Print="0" Pattern="" Label="ISO_MESSAGE_NBR" PropName=""/>
+<Field FieldNo="72" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_RECORD_DATA" PropName=""/>
+<Field FieldNo="73" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="6" Print="0" Pattern="" Label="ISO_ACTION_DATE" PropName=""/>
+<Field FieldNo="74" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_CR_NBR" PropName=""/>
+<Field FieldNo="75" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_CR_REV_NBR" PropName=""/>
+<Field FieldNo="76" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_DB_NBR" PropName=""/>
+<Field FieldNo="77" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_DB_REV_NBR" PropName=""/>
+<Field FieldNo="78" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="10" Print="0" Pattern="" Label="TRANSFER_NBR" PropName=""/>
+<Field FieldNo="79" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="10" Print="0" Pattern="" Label="TRANSFER_REV_NBR" PropName=""/>
+<Field FieldNo="80" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="10" Print="0" Pattern="" Label="INQ_NBR" PropName=""/>
+<Field FieldNo="81" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="10" Print="0" Pattern="" Label="AUT_NBR" PropName=""/>
+<Field FieldNo="82" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="12" Print="0" Pattern="" Label="CR_PROC_FEE_AMNT" PropName=""/>
+<Field FieldNo="83" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_PAYMENT_NBR" PropName=""/>
+<Field FieldNo="84" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="10" Print="0" Pattern="" Label="ISO_PAYMENT_REV_NBR" PropName=""/>
+<Field FieldNo="85" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="12" Print="0" Pattern="" Label="DB_TRANS_FEE_AMNT" PropName=""/>
+<Field FieldNo="86" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="16" Print="0" Pattern="" Label="ISO_CR_AMOUNT" PropName=""/>
+<Field FieldNo="87" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="16" Print="0" Pattern="" Label="ISO_CR_REV_AMOUNT" PropName=""/>
+<Field FieldNo="88" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="16" Print="0" Pattern="" Label="ISO_DB_AMOUNT" PropName=""/>
+<Field FieldNo="89" FieldType="1" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="16" Print="0" Pattern="" Label="ISO_DB_REV_AMOUNT" PropName=""/>
+<Field FieldNo="90" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="42" Print="0" Pattern="" Label="ORIG_DATA" PropName=""/>
+<Field FieldNo="91" FieldType="0" FormatType="4" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="1" Print="0" Pattern="" Label="FILE_UPDATE" PropName=""/>
+<Field FieldNo="92" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="2" Print="0" Pattern="" Label="FILE_SECURITY" PropName=""/>
+<Field FieldNo="94" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="7" Print="0" Pattern="" Label="SERVICE_IND" PropName=""/>
+<Field FieldNo="95" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="42" Print="0" Pattern="" Label="REPLACE_AMOUNTS" PropName=""/>
+<Field FieldNo="97" FieldType="1" FormatType="10" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="17" Print="0" Pattern="" Label="ISO_NET_AMOUNT" PropName=""/>
+<Field FieldNo="98" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="25" Print="0" Pattern="" Label="PAYEE" PropName=""/>
+<Field FieldNo="100" FieldType="0" FormatType="2" AlphaFormat="0" LengthType="0"  LengthUnit="1"  Length="11" Print="0" Pattern="" Label="RECEIVER_ID" PropName=""/>
+<Field FieldNo="101" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="6"  LengthUnit="0"  Length="17" Print="0" Pattern="" Label="ISO_FILE_NAME" PropName=""/>
+<Field FieldNo="102" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="28" Print="0" Pattern="" Label="ACCOUNT_ID1" PropName=""/>
+<Field FieldNo="103" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="28" Print="0" Pattern="" Label="ACCOUNT_ID2" PropName=""/>
+<Field FieldNo="104" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="TRANS_DESC" PropName=""/>
+<Field FieldNo="105" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_1" PropName=""/>
+<Field FieldNo="106" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_2" PropName=""/>
+<Field FieldNo="107" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_3" PropName=""/>
+<Field FieldNo="108" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_4" PropName=""/>
+<Field FieldNo="109" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_5" PropName=""/>
+<!--
+<Field FieldNo="110" FieldType="4" FormatType="6" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_Datacapture_ICC" PropName=""/>
+-->
+<Field FieldNo="110" FieldType="4" FormatType="1" AlphaFormat="0" LengthType="7"  LengthUnit="0"  Length="999" Print="0" Pattern="" Label="ISO_Datacapture_ICC" PropName=""/>
+<Field FieldNo="111" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_ISO_7" PropName=""/>
+<Field FieldNo="112" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_NAT_3" PropName=""/>
+<Field FieldNo="113" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_NAT_4" PropName=""/>
+<Field FieldNo="114" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="RESERVED_NAT_5" PropName=""/>
+<Field FieldNo="115" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="24" Print="0" Pattern="" Label="ADTNL_TRACE_DATA" PropName=""/>
+<Field FieldNo="116" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="CARD_ISSUER_REF_DATA" PropName=""/>
+<Field FieldNo="117" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="NATIONAL_USE" PropName=""/>
+<Field FieldNo="118" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="INTRA_COUNTRY_DATA" PropName=""/>
+<Field FieldNo="121" FieldType="0" FormatType="5" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="11" Print="0" Pattern="" Label="ISS_INST_ID_CODE" PropName=""/>
+<Field FieldNo="123" FieldType="0" FormatType="6" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="29" Print="0" Pattern="" Label="VERIFICATION_DATA" PropName=""/>
+<Field FieldNo="125" FieldType="0" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="SUPPORT_INFO" PropName=""/>
+<Field FieldNo="126" FieldType="0" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="255" Print="0" Pattern="" Label="VISA_PRIV_USE_FLDS" PropName=""/>
+<Field FieldNo="128" FieldType="1" FormatType="1" AlphaFormat="0" LengthType="0"  LengthUnit="0"  Length="4" Print="0" Pattern="" Label="ISO_MAC2" PropName=""/>
+
+</MsgInfoProperties>
+</RootMsgInfoProperties>
+
+<RootTlvInfoProperties >
+
+<TlvInfoProperties NbFields="19"  PropName="PPWM_F048_PROP" TagType="0" LengthType="0" TagLen="3" LengthLen="3">
+<Field FieldTag="P01" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="4" Print="0" Pattern="" Label="PROC_ERROR_CODE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P02" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="3" Length="256" Print="0" Pattern="" Label="TEXT_MESSAGE " PropName="" IsRepeatable="0"/>
+<Field FieldTag="P07" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="4" Print="0" Pattern="" Label="REQUEST_CODE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P08" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="RES_OF_ADDRESS_VERIF" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P10" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="48" Print="2" Pattern="" Label="PIN_ENCRYPTION_KEY" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P11" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="38" Print="0" Pattern="" Label="EXCHANGE_KEY" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P15" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="3" Length="255" Print="0" Pattern="" Label="PVT_DATA" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P18" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="3" Print="0" Pattern="" Label="DESCRIPTOR_OF_KSN" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P19" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="2" Length="20" Print="0" Pattern="" Label="KEY_SERIAL_NUMBER" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P40" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="96" Print="0" Pattern="" Label="E_COMMERCE_CERTIFICATION" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P44" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="RES_OF_EXTERNAL_CRYPTOGRAM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P48" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="TCC" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P82" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="REQ_TYPE_OF_ADDR_VALID" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P83" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="RES_OF_ADDR_VERIF" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P87" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="RES_CODE_OF_CVV_EXTERN_VERIF" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P88" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="SOURCE_CODE_OF_EXTERNAL_ENTITY" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P89" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="ERROR_CODE_OF_CVC1" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P92" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="3" Print="2" Pattern="" Label="CVC2" PropName="" IsRepeatable="0"/>
+<Field FieldTag="P93" FieldType="1" FormatType="6" AlphaFormat="0" LengthType="0" Length="4" Print="0" Pattern="" Label="RES_CODE_OF_HSM " PropName="" IsRepeatable="0"/>
+</TlvInfoProperties>
+
+
+</RootTlvInfoProperties>
+
+
+<RootStaticInfoProperties >
+</RootStaticInfoProperties>
+
+
+<RootBerInfoProperties >
+
+<BerInfoProperties NbFields="27"  PropName="PPWM_F055_PROP">
+<Field FieldTag="71" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="3" Length="128" Print="0" Pattern="" Label="ISS_SCRIPT1" PropName="" IsRepeatable="0"/>
+<Field FieldTag="72" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="3" Length="128" Print="0" Pattern="" Label="ISS_SCRIPT2" PropName="" IsRepeatable="0"/>
+<Field FieldTag="82" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="APP_INTER_PROFILE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="84" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="2" Length="16" Print="0" Pattern="" Label="DED_FILE_NAME" PropName="" IsRepeatable="0"/>
+<Field FieldTag="86" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="2" Length="21" Print="0" Pattern="" Label="ISS_SCRIPT_CMD" PropName="" IsRepeatable="0"/>
+<Field FieldTag="8A" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="1" Length="2" Print="0" Pattern="" Label="DED_FILE_NAME" PropName="" IsRepeatable="0"/>
+<Field FieldTag="91" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="2" Length="16" Print="0" Pattern="" Label="ISS_AUTHEN_DATA" PropName="" IsRepeatable="0"/>
+<Field FieldTag="95" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="5" Print="0" Pattern="" Label="TVR" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9A" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="3" Print="0" Pattern="" Label="TRANS_DATE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9C" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="TRANS_TYPE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="5F2A" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="TRANS_CUR_CODE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F02" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="6" Print="0" Pattern="" Label="TRANS_AMOUNT" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F03" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="6" Print="0" Pattern="" Label="OTHER_AMOUNT" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F09" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="TERM_APP_VER_NUM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F10" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="2" Length="32" Print="0" Pattern="" Label="ISS_APP_DATA" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F1A" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="TERM_COUNTRY_CODE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F1E" FieldType="1" FormatType="5" AlphaFormat="0" LengthType="0" Length="8" Print="0" Pattern="" Label="IFD_SERIAL_NUM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="57" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="2" Length="19" Print="0" Pattern="" Label="TRACK2" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F26" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="8" Print="0" Pattern="" Label="APP_CRYPTOGRAM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F27" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="CRYPTO_INFO_DATA" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F33" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="3" Print="0" Pattern="" Label="TERM_CAP" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F34" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="1" Length="4" Print="0" Pattern="" Label="CVM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F35" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="TERM_TYPE" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F36" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="2" Print="0" Pattern="" Label="ATC" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F37" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="4" Print="0" Pattern="" Label="UNPRED_NUMBER" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F41" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="1" Length="4" Print="0" Pattern="" Label="TRANS_SEQ_NUM" PropName="" IsRepeatable="0"/>
+<Field FieldTag="9F53" FieldType="1" FormatType="0" AlphaFormat="0" LengthType="0" Length="1" Print="0" Pattern="" Label="TRANS_CATEG_CODE" PropName="" IsRepeatable="0"/>
+
+
+</BerInfoProperties>
+
+</RootBerInfoProperties>
+
+
+<RootBitMapInfoProperties >
+</RootBitMapInfoProperties>
+
+
+
+</P7_Config>

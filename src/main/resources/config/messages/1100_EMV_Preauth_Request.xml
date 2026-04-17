@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<BaseMessage	Description="EMV Preauthorization request">
+
+<MessageInfo>
+<MsgType Value="1100"/>
+<MsgHeader Value="ISO0416211111000"/>
+ <Field Number="002"	Value="4260000000510013"/>
+ <Field Number="003"	Value="000000"/>
+ <Field Number="004"	Value="000000002500"/>
+ <Field Number="007"	Value="1612282045"/>
+ <Field Number="011"	Value="001282"/>
+ <Field Number="012"	Value="161228204428"/>
+ <Field Number="014"	Value="3012"/>
+ <Field Number="017"	Value="1228"/>
+ <Field Number="022"	Value="310301313146"/>
+ <Field Number="023"	Value="001"/>
+ <Field Number="024"	Value="101"/>
+ <Field Number="026"	Value="5993"/>
+ <Field Number="032"	Value="101010"/>
+ <Field Number="037"	Value="001282000000"/>
+ <Field Number="041"	Value="20000101"/>
+ <Field Number="042"	Value="POSFIN001      "/>
+ <Field Number="043"	Value="SHOPPING CIGAR          CASA                    00MAR"/>
+ <Field Number="048"	Value="R02017VX520-260-449-958R03008QT520245R040086.2.0.05"/>
+ <Field Number="049"	Value="504"/>
+ <Field Number="048"	Value="P92003468R02017VX520-260-449-958R03008QT520245R040086.2.0.05"/>
+ <Field Number="052"	Value="5642B408CCBFE783"/>
+ <Field Number="053"	Value="0099000000"/>
+ <Field Number="055"	Value="82023C008407A0000000032010950528800088009A031612289C01005F2A0205049F02060000000045009F03060000000000009F0902008C9F100706010A03A420009F1A02050457134260000000510013D30122011469629300000F9F26080B77C9C5D243104B9F2701809F3303E0F8C89F34034103029F3501229F3602008F9F3704C4D34B9D9F410430303031"/>
+ <Field Number="063"	Value="00000200100300100036387000005"/>
+ <Field Number="064"	Value="2E95EA4F"/>
+ </MessageInfo>
+
+</BaseMessage>

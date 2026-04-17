@@ -4,8 +4,17 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class IsoMessage {
+    private String header;
     private String mti;
     private final Map<Integer, String> fields = new TreeMap<Integer, String>();
+
+    public String getHeader() {
+        return header;
+    }
+
+    public void setHeader(String header) {
+        this.header = header;
+    }
 
     public String getMti() {
         return mti;
@@ -30,6 +39,10 @@ public class IsoMessage {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
+
+        if (header != null) {
+            sb.append("HEADER: ").append(header).append("\n");
+        }
 
         sb.append("MTI: ").append(mti).append("\n");
 
