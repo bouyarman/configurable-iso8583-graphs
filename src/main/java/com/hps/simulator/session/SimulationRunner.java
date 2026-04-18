@@ -1,6 +1,7 @@
 package com.hps.simulator.session;
 
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.protocol.model.ProtocolDefinition;
 import com.hps.simulator.terminal.TerminalWorker;
 
 import java.util.concurrent.Executors;
@@ -11,8 +12,7 @@ public class SimulationRunner {
 
     public MetricsCollector runSimulation(SimulationSession session, int durationSeconds) throws InterruptedException {
         MetricsCollector metricsCollector = new MetricsCollector();
-
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
 
         for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
             long periodMillis = 1000L / connectedSession.getTerminal().getTps();
@@ -30,8 +30,35 @@ public class SimulationRunner {
         }
 
         Thread.sleep(durationSeconds * 1000L);
+        scheduler.shutdown();
+        scheduler.awaitTermination(5, TimeUnit.SECONDS);
 
-        System.out.println("Stopping simulation...");
+        metricsCollector.stop();
+        return metricsCollector;
+    }
+
+    public MetricsCollector runSimulation(SimulationSession session, int durationSeconds, ProtocolDefinition protocol)
+            throws InterruptedException {
+        MetricsCollector metricsCollector = new MetricsCollector();
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
+
+        for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
+            long periodMillis = 1000L / connectedSession.getTerminal().getTps();
+
+            scheduler.scheduleAtFixedRate(
+                    new TerminalWorker(
+                            connectedSession.getTerminal(),
+                            metricsCollector,
+                            connectedSession.getClient(),
+                            protocol
+                    ),
+                    0,
+                    periodMillis,
+                    TimeUnit.MILLISECONDS
+            );
+        }
+
+        Thread.sleep(durationSeconds * 1000L);
         scheduler.shutdown();
         scheduler.awaitTermination(5, TimeUnit.SECONDS);
 

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-@Component
 public class TcpServerStarter {
 
     private final BinaryTcpTestSwitchServer switchServer;

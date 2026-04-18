@@ -3,23 +3,22 @@ package com.hps.simulator.terminal;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.scenario.AuthorizationScenario;
+import com.hps.simulator.scenario.DynamicAuthorizationScenario;
 
 public class VirtualTerminal {
 
     private final String terminalId;
     private final int tps;
-    private final AuthorizationScenario scenario;
-    private TerminalProfile profile;
 
+    private final AuthorizationScenario fixedScenario;
+    private final DynamicAuthorizationScenario dynamicScenario;
+
+    private TerminalProfile profile;
     private boolean loggingEnabled;
 
-    public boolean isLoggingEnabled() {
-        return loggingEnabled;
-    }
+    private IsoMessage dynamicTemplate;
+    private boolean dynamicMode = false;
 
-    public void setLoggingEnabled(boolean loggingEnabled) {
-        this.loggingEnabled = loggingEnabled;
-    }
     public VirtualTerminal(String terminalId, int tps) {
         if (tps <= 0) {
             throw new IllegalArgumentException("TPS must be greater than 0");
@@ -27,12 +26,18 @@ public class VirtualTerminal {
 
         this.terminalId = terminalId;
         this.tps = tps;
-        this.scenario = new AuthorizationScenario();
+        this.fixedScenario = new AuthorizationScenario();
+        this.dynamicScenario = new DynamicAuthorizationScenario();
     }
 
     public IsoMessage generateTransaction() {
         long amount = (long) (Math.random() * 100000);
-        return scenario.createAuthorization(terminalId, amount,profile);
+
+        if (dynamicMode && dynamicTemplate != null) {
+            return dynamicScenario.createAuthorization(dynamicTemplate, terminalId, amount, profile);
+        }
+
+        return fixedScenario.createAuthorization(terminalId, amount, profile);
     }
 
     public String getTerminalId() {
@@ -49,5 +54,18 @@ public class VirtualTerminal {
 
     public void setProfile(TerminalProfile profile) {
         this.profile = profile;
+    }
+
+    public boolean isLoggingEnabled() {
+        return loggingEnabled;
+    }
+
+    public void setLoggingEnabled(boolean loggingEnabled) {
+        this.loggingEnabled = loggingEnabled;
+    }
+
+    public void setDynamicTemplate(IsoMessage dynamicTemplate) {
+        this.dynamicTemplate = dynamicTemplate;
+        this.dynamicMode = (dynamicTemplate != null);
     }
 }

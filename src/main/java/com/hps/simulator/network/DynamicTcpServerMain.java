@@ -7,7 +7,7 @@ public class DynamicTcpServerMain {
 
     public static void main(String[] args) throws Exception {
         ProtocolDefinition protocol = ProtocolXmlLoader.load(
-                "C:/Users/hbouyarman/OneDrive - HPS/Bureau/final/project/sim-loadgen/src/main/resources/config/protocols/ppwm_protocol.xml"
+                "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
         );
 
         DynamicBinaryTcpTestSwitchServer server =

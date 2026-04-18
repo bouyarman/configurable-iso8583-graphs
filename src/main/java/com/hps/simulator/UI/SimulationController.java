@@ -1,10 +1,16 @@
 package com.hps.simulator.UI;
 
+import com.hps.simulator.iso.IsoMessage;
+import com.hps.simulator.iso.XmlIsoMessageLoader;
 import com.hps.simulator.logging.RunManager;
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.network.BinaryTcpTestSwitchServer;
 import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.profile.TerminalProfileLoader;
+import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
+import com.hps.simulator.protocol.model.ProtocolDefinition;
 import com.hps.simulator.session.ConnectionService;
+import com.hps.simulator.session.ConnectedTerminalSession;
 import com.hps.simulator.session.SimulationRunner;
 import com.hps.simulator.session.SimulationSession;
 import org.springframework.stereotype.Controller;
@@ -13,9 +19,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
-
-import com.hps.simulator.network.BinaryTcpTestSwitchServer;
-
 import java.util.List;
 
 @Controller
@@ -23,15 +26,17 @@ public class SimulationController {
 
     private final ConnectionService connectionService;
     private final SimulationSessionStore sessionStore;
-
     private final BinaryTcpTestSwitchServer switchServer;
+
+    private ProtocolDefinition dynamicProtocol;
+    private IsoMessage dynamicTemplate;
 
     public SimulationController(ConnectionService connectionService,
                                 SimulationSessionStore sessionStore,
                                 BinaryTcpTestSwitchServer switchServer) {
-        this.switchServer=switchServer;
         this.connectionService = connectionService;
         this.sessionStore = sessionStore;
+        this.switchServer = switchServer;
     }
 
     @GetMapping("/")
@@ -41,7 +46,7 @@ public class SimulationController {
         if (request == null) {
             request = new SimulationRequest();
             request.setHost("127.0.0.1");
-            request.setPort(6000);
+            request.setPort(5000); // dynamic server port
             request.setTerminalCount(10);
             request.setTimeoutMillis(1000);
             request.setTpsPerTerminal(2);
@@ -57,48 +62,72 @@ public class SimulationController {
 
     @PostMapping("/connect")
     public String connect(@ModelAttribute("request") SimulationRequest request, Model model) {
-        List<TerminalProfile> profiles = TerminalProfileLoader.loadFromFile(
-                "C:/Users/hbouyarman/Downloads/PSTT/PSTT/pstt_conf/Data/c_vl_35_term_profiles.xml"
-        );
+        try {
+            dynamicProtocol = ProtocolXmlLoader.load(
+                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
+            );
 
-        if (sessionStore.hasSession()) {
-            try {
-                sessionStore.getCurrentSession().closeAllClients();
-            } catch (Exception ignored) {
+            XmlIsoMessageLoader xmlLoader = new XmlIsoMessageLoader();
+            dynamicTemplate = xmlLoader.load(
+                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\scenes\\cases\\c_ppwm\\1100_EMV_Preauth_Request.xml"
+            );
+
+            List<TerminalProfile> profiles = TerminalProfileLoader.loadFromFile(
+                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\Data\\c_vl_35_term_profiles.xml"
+            );
+
+            if (sessionStore.hasSession()) {
+                try {
+                    sessionStore.getCurrentSession().closeAllClients();
+                } catch (Exception ignored) {
+                }
+                sessionStore.clear();
             }
-            sessionStore.clear();
+
+            sessionStore.setLastRequest(request);
+            RunManager.initNewRun();
+
+            switchServer.updateSwitchConfig(
+                    request.getMinLatencyMs(),
+                    request.getMaxLatencyMs(),
+                    50,
+                    0.1
+            );
+
+            System.out.println("Switch config updated => min=" + request.getMinLatencyMs()
+                    + ", max=" + request.getMaxLatencyMs());
+
+            SimulationSession session = connectionService.createSimulationSession(
+                    request.getHost(),
+                    request.getPort(),
+                    request.getTerminalCount(),
+                    request.getTimeoutMillis(),
+                    request.getTpsPerTerminal(),
+                    request.isEnableLogs(),
+                    profiles
+            );
+
+            // Link XML template to every connected terminal
+            for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
+                connectedSession.getTerminal().setDynamicTemplate(dynamicTemplate);
+            }
+
+            sessionStore.setCurrentSession(session);
+
+            model.addAttribute("request", request);
+            model.addAttribute("simulationSession", session);
+            model.addAttribute("message", "Terminals connected successfully in dynamic mode.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("request", request);
+            model.addAttribute("simulationSession", null);
+            model.addAttribute("message", "Connection failed: " + e.getMessage());
         }
-
-        sessionStore.setLastRequest(request);
-        RunManager.initNewRun();
-
-        switchServer.updateSwitchConfig(
-                request.getMinLatencyMs(),
-                request.getMaxLatencyMs(),
-                50,
-                0.1
-        );
-
-        System.out.println("Switch config updated => min=" + request.getMinLatencyMs()
-                + ", max=" + request.getMaxLatencyMs());
-
-        SimulationSession session = connectionService.createSimulationSession(
-                request.getHost(),
-                request.getPort(),
-                request.getTerminalCount(),
-                request.getTimeoutMillis(),
-                request.getTpsPerTerminal(),
-                request.isEnableLogs(),
-                profiles
-        );
-
-        sessionStore.setCurrentSession(session);
-
-        model.addAttribute("request", request);
-        model.addAttribute("simulationSession", session);
 
         return "index";
     }
+
     @GetMapping("/simulate")
     public String simulate(Model model) throws Exception {
         SimulationSession session = sessionStore.getCurrentSession();
@@ -107,7 +136,7 @@ public class SimulationController {
         if (request == null) {
             request = new SimulationRequest();
             request.setHost("127.0.0.1");
-            request.setPort(6000);
+            request.setPort(5000); // dynamic server port
             request.setTerminalCount(10);
             request.setTimeoutMillis(1000);
             request.setTpsPerTerminal(2);
@@ -123,8 +152,19 @@ public class SimulationController {
             return "index";
         }
 
+        if (dynamicProtocol == null) {
+            model.addAttribute("message", "Dynamic protocol not loaded. Please connect first.");
+            return "index";
+        }
+
         SimulationRunner runner = new SimulationRunner();
-        MetricsCollector metrics = runner.runSimulation(session, request.getDurationSeconds());
+
+        // IMPORTANT: use the dynamic runSimulation overload
+        MetricsCollector metrics = runner.runSimulation(
+                session,
+                request.getDurationSeconds(),
+                dynamicProtocol
+        );
 
         SimulationResultView result = new SimulationResultView(
                 metrics.getTotalTransactions(),
@@ -136,7 +176,7 @@ public class SimulationController {
         );
 
         model.addAttribute("result", result);
-        model.addAttribute("message", "Simulation completed.");
+        model.addAttribute("message", "Dynamic simulation completed.");
 
         return "index";
     }

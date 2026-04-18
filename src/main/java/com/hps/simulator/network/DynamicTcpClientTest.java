@@ -12,12 +12,12 @@ public class DynamicTcpClientTest {
 
     public static void main(String[] args) throws Exception {
         ProtocolDefinition protocol = ProtocolXmlLoader.load(
-                "C:/Users/hbouyarman/OneDrive - HPS/Bureau/final/project/sim-loadgen/src/main/resources/config/protocols/ppwm_protocol.xml"
+                "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
         );
 
         XmlIsoMessageLoader xmlLoader = new XmlIsoMessageLoader();
         IsoMessage request = xmlLoader.load(
-                "C:/Users/hbouyarman/OneDrive - HPS/Bureau/final/project/sim-loadgen/src/main/resources/config/messages/1100_EMV_Preauth_Request.xml"
+                "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\scenes\\cases\\c_ppwm\\1100_EMV_Preauth_Request.xml"
         );
 
         DynamicBinaryIsoMessagePacker packer = new DynamicBinaryIsoMessagePacker(protocol);
