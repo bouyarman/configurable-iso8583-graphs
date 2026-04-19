@@ -1,22 +1,35 @@
 package com.hps.simulator.UI;
 
 import com.hps.simulator.network.BinaryTcpTestSwitchServer;
+import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
+import com.hps.simulator.protocol.model.ProtocolDefinition;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+@Component
+public class TcpServerStarter implements CommandLineRunner {
 
-public class TcpServerStarter {
+    @Override
+    public void run(String... args) throws Exception {
+        ProtocolDefinition protocol = ProtocolXmlLoader.load(
+                "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
+        );
 
-    private final BinaryTcpTestSwitchServer switchServer;
+        BinaryTcpTestSwitchServer server =
+                new BinaryTcpTestSwitchServer(5000, protocol);
 
-    public TcpServerStarter(BinaryTcpTestSwitchServer switchServer) {
-        this.switchServer = switchServer;
-    }
+        Thread serverThread = new Thread(() -> {
+            try {
+                server.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
 
-    @PostConstruct
-    public void startTestSwitch() {
-        Thread switchServerThread = new Thread(switchServer);
-        switchServerThread.setDaemon(true);
-        switchServerThread.start();
+        serverThread.setName("dynamic-tcp-server");
+        serverThread.setDaemon(true);
+        serverThread.start();
+
+        System.out.println("Dynamic TCP Server started on port 5000");
     }
 }

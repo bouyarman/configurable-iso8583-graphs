@@ -4,7 +4,6 @@ import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.iso.XmlIsoMessageLoader;
 import com.hps.simulator.logging.RunManager;
 import com.hps.simulator.metrics.MetricsCollector;
-import com.hps.simulator.network.BinaryTcpTestSwitchServer;
 import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.profile.TerminalProfileLoader;
 import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
@@ -26,17 +25,15 @@ public class SimulationController {
 
     private final ConnectionService connectionService;
     private final SimulationSessionStore sessionStore;
-    private final BinaryTcpTestSwitchServer switchServer;
 
-    private ProtocolDefinition dynamicProtocol;
-    private IsoMessage dynamicTemplate;
+    private ProtocolDefinition protocol;
+    private IsoMessage template;
 
     public SimulationController(ConnectionService connectionService,
-                                SimulationSessionStore sessionStore,
-                                BinaryTcpTestSwitchServer switchServer) {
+                                SimulationSessionStore sessionStore
+                                ) {
         this.connectionService = connectionService;
         this.sessionStore = sessionStore;
-        this.switchServer = switchServer;
     }
 
     @GetMapping("/")
@@ -63,12 +60,12 @@ public class SimulationController {
     @PostMapping("/connect")
     public String connect(@ModelAttribute("request") SimulationRequest request, Model model) {
         try {
-            dynamicProtocol = ProtocolXmlLoader.load(
+            protocol = ProtocolXmlLoader.load(
                     "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
             );
 
             XmlIsoMessageLoader xmlLoader = new XmlIsoMessageLoader();
-            dynamicTemplate = xmlLoader.load(
+            template = xmlLoader.load(
                     "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\scenes\\cases\\c_ppwm\\1100_EMV_Preauth_Request.xml"
             );
 
@@ -87,13 +84,6 @@ public class SimulationController {
             sessionStore.setLastRequest(request);
             RunManager.initNewRun();
 
-            switchServer.updateSwitchConfig(
-                    request.getMinLatencyMs(),
-                    request.getMaxLatencyMs(),
-                    50,
-                    0.1
-            );
-
             System.out.println("Switch config updated => min=" + request.getMinLatencyMs()
                     + ", max=" + request.getMaxLatencyMs());
 
@@ -109,7 +99,7 @@ public class SimulationController {
 
             // Link XML template to every connected terminal
             for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
-                connectedSession.getTerminal().setDynamicTemplate(dynamicTemplate);
+                connectedSession.getTerminal().setTemplate(template);
             }
 
             sessionStore.setCurrentSession(session);
@@ -152,7 +142,7 @@ public class SimulationController {
             return "index";
         }
 
-        if (dynamicProtocol == null) {
+        if (protocol == null) {
             model.addAttribute("message", "Dynamic protocol not loaded. Please connect first.");
             return "index";
         }
@@ -163,7 +153,7 @@ public class SimulationController {
         MetricsCollector metrics = runner.runSimulation(
                 session,
                 request.getDurationSeconds(),
-                dynamicProtocol
+                protocol
         );
 
         SimulationResultView result = new SimulationResultView(

@@ -1,23 +1,18 @@
 package com.hps.simulator.terminal;
 
+import com.hps.simulator.scenario.AuthorizationScenario;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.profile.TerminalProfile;
-import com.hps.simulator.scenario.AuthorizationScenario;
-import com.hps.simulator.scenario.DynamicAuthorizationScenario;
 
 public class VirtualTerminal {
 
     private final String terminalId;
     private final int tps;
-
-    private final AuthorizationScenario fixedScenario;
-    private final DynamicAuthorizationScenario dynamicScenario;
+    private final AuthorizationScenario scenario;
 
     private TerminalProfile profile;
     private boolean loggingEnabled;
-
-    private IsoMessage dynamicTemplate;
-    private boolean dynamicMode = false;
+    private IsoMessage template;
 
     public VirtualTerminal(String terminalId, int tps) {
         if (tps <= 0) {
@@ -26,18 +21,17 @@ public class VirtualTerminal {
 
         this.terminalId = terminalId;
         this.tps = tps;
-        this.fixedScenario = new AuthorizationScenario();
-        this.dynamicScenario = new DynamicAuthorizationScenario();
+        this.scenario = new AuthorizationScenario();
     }
 
     public IsoMessage generateTransaction() {
-        long amount = (long) (Math.random() * 100000);
+        long amount = 100 + (long) (Math.random() * 100000);
 
-        if (dynamicMode && dynamicTemplate != null) {
-            return dynamicScenario.createAuthorization(dynamicTemplate, terminalId, amount, profile);
+        if (template == null) {
+            throw new IllegalStateException("Dynamic template is not set for terminal " + terminalId);
         }
 
-        return fixedScenario.createAuthorization(terminalId, amount, profile);
+        return scenario.createAuthorization(template, terminalId, amount, profile);
     }
 
     public String getTerminalId() {
@@ -64,8 +58,11 @@ public class VirtualTerminal {
         this.loggingEnabled = loggingEnabled;
     }
 
-    public void setDynamicTemplate(IsoMessage dynamicTemplate) {
-        this.dynamicTemplate = dynamicTemplate;
-        this.dynamicMode = (dynamicTemplate != null);
+    public IsoMessage getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(IsoMessage template) {
+        this.template = template;
     }
 }

@@ -10,6 +10,7 @@ import java.util.List;
 
 @Service
 public class ConnectionService {
+
     private String buildUniqueTerminalId(String baseTermId, int index) {
         if (baseTermId == null || baseTermId.trim().isEmpty()) {
             return String.format("%08d", index + 1);
@@ -22,6 +23,7 @@ public class ConnectionService {
             return baseTermId;
         }
     }
+
     public SimulationSession createSimulationSession(String host,
                                                      int port,
                                                      int terminalCount,

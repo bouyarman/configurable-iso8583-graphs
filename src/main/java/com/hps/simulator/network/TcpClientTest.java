@@ -1,14 +1,14 @@
 package com.hps.simulator.network;
 
-import com.hps.simulator.iso.DynamicBinaryIsoMessagePacker;
-import com.hps.simulator.iso.DynamicBinaryIsoMessageUnpacker;
+import com.hps.simulator.iso.BinaryIsoMessagePacker;
+import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.iso.XmlIsoMessageLoader;
 import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
 import com.hps.simulator.protocol.model.ProtocolDefinition;
 import com.hps.simulator.util.HexUtils;
 
-public class DynamicTcpClientTest {
+public class TcpClientTest {
 
     public static void main(String[] args) throws Exception {
         ProtocolDefinition protocol = ProtocolXmlLoader.load(
@@ -20,8 +20,8 @@ public class DynamicTcpClientTest {
                 "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\scenes\\cases\\c_ppwm\\1100_EMV_Preauth_Request.xml"
         );
 
-        DynamicBinaryIsoMessagePacker packer = new DynamicBinaryIsoMessagePacker(protocol);
-        DynamicBinaryIsoMessageUnpacker unpacker = new DynamicBinaryIsoMessageUnpacker(protocol);
+        BinaryIsoMessagePacker packer = new BinaryIsoMessagePacker(protocol);
+        BinaryIsoMessageUnpacker unpacker = new BinaryIsoMessageUnpacker(protocol);
 
         byte[] requestBytes = packer.pack(request);
 

@@ -1,7 +1,6 @@
 package com.hps.simulator.switching;
 
 import com.hps.simulator.iso.IsoMessage;
-import com.hps.simulator.iso.IsoMessageBuilder;
 
 public class TestSwitch {
 
@@ -20,7 +19,8 @@ public class TestSwitch {
     public SwitchResponse process(IsoMessage request) throws InterruptedException {
         long start = System.currentTimeMillis();
 
-        if ("0200".equals(request.getMti()) && Math.random() < timeoutProbability) {
+        if (("0200".equals(request.getMti()) || "1100".equals(request.getMti()))
+                && Math.random() < timeoutProbability) {
             Thread.sleep(timeoutLatencyMs);
             long latency = System.currentTimeMillis() - start;
             return new SwitchResponse(null, true, latency);
@@ -36,11 +36,14 @@ public class TestSwitch {
         IsoMessage response;
         if ("0200".equals(request.getMti())) {
             String responseCode = resolveResponseCode(request);
-            response = buildAuthorizationResponse(request, responseCode);
+            response = build0200Response(request, responseCode);
         } else if ("0400".equals(request.getMti())) {
-            response = buildReversalResponse(request, "00");
+            response = build0400Response(request, "000");
+        } else if ("1100".equals(request.getMti())) {
+            String responseCode = resolveResponseCode(request);
+            response = build1100Response(request, responseCode);
         } else {
-            response = buildGenericErrorResponse(request, "96");
+            response = buildGenericErrorResponse(request, "096");
         }
 
         long latency = System.currentTimeMillis() - start;
@@ -51,81 +54,95 @@ public class TestSwitch {
         String amount = request.getField(4);
 
         if (amount == null) {
-            return "96";
+            return "096";
         }
 
         try {
             long amountValue = Long.parseLong(amount);
 
             if (amountValue > 50000) {
-                return "05";
+                return "005";
             }
 
-            return "00";
+            return "000";
         } catch (NumberFormatException e) {
-            return "96";
+            return "096";
         }
     }
 
-    private IsoMessage buildAuthorizationResponse(IsoMessage request, String responseCode) {
-        String de42 = fit(request.getField(42), 15);
-        String de43 = fit(request.getField(43), 40);
+    private IsoMessage build0200Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("0210");
 
-        return new IsoMessageBuilder()
-                .withMti("0210")
-                .withField(3, request.getField(3))
-                .withField(4, request.getField(4))
-                .withField(7, request.getField(7))
-                .withField(11, request.getField(11))
-                .withField(39, responseCode)
-                .withField(41, request.getField(41))
-                .withField(42, de42)
-                .withField(43, de43)
+        copyIfPresent(request, response, 3);
+        copyIfPresent(request, response, 4);
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        copyIfPresent(request, response, 43);
 
-
-
-
-                .build();
+        response.setField(39, responseCode);
+        return response;
     }
 
-    private IsoMessage buildReversalResponse(IsoMessage request, String responseCode) {
-        String de42 = fit(request.getField(42), 15);
-        String de43 = fit(request.getField(43), 40);
-        return new IsoMessageBuilder()
-                .withMti("0410")
-                .withField(3, request.getField(3))
-                .withField(4, request.getField(4))
-                .withField(7, request.getField(7))
-                .withField(11, request.getField(11))
-                .withField(39, responseCode)
-                .withField(41, request.getField(41))
-                .withField(42, de42)
-                .withField(43, de43)
+    private IsoMessage build0400Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("0410");
 
+        copyIfPresent(request, response, 3);
+        copyIfPresent(request, response, 4);
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        copyIfPresent(request, response, 43);
 
-                .build();
+        response.setField(39, responseCode);
+        return response;
+    }
+
+    private IsoMessage build1100Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("1110");
+
+        // copy the most useful fields for a first dynamic preauth response
+        copyIfPresent(request, response, 2);
+        copyIfPresent(request, response, 3);
+        copyIfPresent(request, response, 4);
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 12);
+        copyIfPresent(request, response, 14);
+        copyIfPresent(request, response, 22);
+        copyIfPresent(request, response, 23);
+        copyIfPresent(request, response, 24);
+        copyIfPresent(request, response, 37);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        copyIfPresent(request, response, 43);
+        copyIfPresent(request, response, 49);
+
+        response.setField(39, responseCode);
+
+        return response;
     }
 
     private IsoMessage buildGenericErrorResponse(IsoMessage request, String responseCode) {
-        return new IsoMessageBuilder()
-                .withMti("9999")
-                .withField(39, responseCode)
-                .build();
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("9999");
+        response.setField(39, responseCode);
+        return response;
     }
-    private String fit(String value, int length) {
-        if (value == null) {
-            value = "";
-        }
 
-        if (value.length() > length) {
-            return value.substring(0, length);
+    private void copyIfPresent(IsoMessage from, IsoMessage to, int field) {
+        String value = from.getField(field);
+        if (value != null) {
+            to.setField(field, value);
         }
-
-        StringBuilder sb = new StringBuilder(value);
-        while (sb.length() < length) {
-            sb.append(' ');
-        }
-
-        return sb.toString();
     }
 }

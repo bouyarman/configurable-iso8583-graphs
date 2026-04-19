@@ -6,7 +6,7 @@ import com.hps.simulator.protocol.model.ProtocolDefinition;
 
 import java.util.TreeSet;
 
-public class DynamicBinaryIsoRoundTripTest {
+public class BinaryIsoRoundTripTest {
 
     public static void main(String[] args) throws Exception {
         ProtocolDefinition protocol = ProtocolXmlLoader.load(
@@ -18,10 +18,10 @@ public class DynamicBinaryIsoRoundTripTest {
                 "C:/Users/hbouyarman/OneDrive - HPS/Bureau/final/project/sim-loadgen/src/main/resources/config/messages/1100_EMV_Preauth_Request.xml"
         );
 
-        DynamicBinaryIsoMessagePacker packer = new DynamicBinaryIsoMessagePacker(protocol);
+        BinaryIsoMessagePacker packer = new BinaryIsoMessagePacker(protocol);
         byte[] packed = packer.pack(original);
 
-        DynamicBinaryIsoMessageUnpacker unpacker = new DynamicBinaryIsoMessageUnpacker(protocol);
+        BinaryIsoMessageUnpacker unpacker = new BinaryIsoMessageUnpacker(protocol);
         IsoMessage unpacked = unpacker.unpack(packed);
 
         System.out.println("===== ORIGINAL =====");

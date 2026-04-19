@@ -1,12 +1,71 @@
 package com.hps.simulator.scenario;
 
 import com.hps.simulator.iso.IsoMessage;
-import com.hps.simulator.iso.IsoMessageBuilder;
 import com.hps.simulator.profile.TerminalProfile;
-import com.hps.simulator.util.IsoUtils;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AuthorizationScenario {
-    private String fit(String value, int length) {
+
+    private static final AtomicInteger STAN_COUNTER = new AtomicInteger(1);
+
+    public IsoMessage createAuthorization(IsoMessage template,
+                                          String terminalId,
+                                          long amountInCents,
+                                          TerminalProfile profile) {
+        IsoMessage msg = copy(template);
+
+        msg.setField(4, formatAmount(amountInCents));   // DE4
+        msg.setField(7, generateDe7());                 // DE7
+        msg.setField(11, generateStan());               // DE11
+
+        if (terminalId != null) {
+            msg.setField(41, fitRight(terminalId, 8));
+        }
+
+        if (profile != null) {
+            if (profile.getOutletNo() != null && !profile.getOutletNo().trim().isEmpty()) {
+                msg.setField(42, fitRight(profile.getOutletNo(), 15));
+            }
+
+            if (profile.getTermAddr() != null && !profile.getTermAddr().trim().isEmpty()) {
+                msg.setField(43, fitRight(profile.getTermAddr(), 40));
+            }
+        }
+
+        return msg;
+    }
+
+    private IsoMessage copy(IsoMessage source) {
+        IsoMessage copy = new IsoMessage();
+
+        copy.setHeader(source.getHeader());
+        copy.setMti(source.getMti());
+
+        for (Map.Entry<Integer, String> entry : source.getFields().entrySet()) {
+            copy.setField(entry.getKey(), entry.getValue());
+        }
+
+        return copy;
+    }
+
+    private String formatAmount(long amountInCents) {
+        return String.format("%012d", amountInCents);
+    }
+
+    private String generateDe7() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMddHHmmss"));
+    }
+
+    private String generateStan() {
+        int stan = STAN_COUNTER.getAndUpdate(current -> current >= 999999 ? 1 : current + 1);
+        return String.format("%06d", stan);
+    }
+
+    private String fitRight(String value, int length) {
         if (value == null) {
             value = "";
         }
@@ -19,26 +78,6 @@ public class AuthorizationScenario {
         while (sb.length() < length) {
             sb.append(' ');
         }
-
         return sb.toString();
-    }
-
-    public IsoMessage createAuthorization(String terminalId, long amountInCents, TerminalProfile profile) {
-
-        System.out.println("PROFILE USED => " + profile.getOutletNo() + " | " + profile.getTermAddr());
-
-        String de42 = fit(profile != null ? profile.getOutletNo() : null, 15);
-        String de43 = fit(profile != null ? profile.getTermAddr() : null, 40);
-
-        return new IsoMessageBuilder()
-                .withMti("0200")
-                .withField(3, "000000")
-                .withField(4, IsoUtils.formatAmount(amountInCents))
-                .withField(7, IsoUtils.generateTransmissionDateTime())
-                .withField(11, IsoUtils.generateStan())
-                .withField(41, terminalId)
-                .withField(42, de42)
-                .withField(43, de43)
-                .build();
     }
 }
