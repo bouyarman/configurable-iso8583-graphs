@@ -3,6 +3,7 @@ package com.hps.simulator.network;
 import com.hps.simulator.iso.BinaryIsoMessagePacker;
 import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
 import com.hps.simulator.iso.IsoMessage;
+import com.hps.simulator.metrics.ServerMetricsCollector;
 import com.hps.simulator.protocol.model.ProtocolDefinition;
 import com.hps.simulator.switching.TestSwitch;
 import com.hps.simulator.switching.SwitchResponse;
@@ -19,16 +20,21 @@ public class BinaryTcpTestSwitchServer implements Runnable {
     private final BinaryIsoMessagePacker packer;
     private final BinaryIsoMessageUnpacker unpacker;
 
+    private final ServerMetricsCollector serverMetrics;
+
+
     private volatile boolean running = true;
     private volatile TestSwitch DynamicTestSwitch;
     private ServerSocket serverSocket;
 
-    public BinaryTcpTestSwitchServer(int port, ProtocolDefinition protocol) {
+    public BinaryTcpTestSwitchServer(int port,
+                                     ProtocolDefinition protocol,
+                                     ServerMetricsCollector serverMetrics) {
         this.port = port;
         this.packer = new BinaryIsoMessagePacker(protocol);
         this.unpacker = new BinaryIsoMessageUnpacker(protocol);
-
         this.DynamicTestSwitch = new TestSwitch(20, 100, 200, 0.0);
+        this.serverMetrics = serverMetrics;
     }
 
     public synchronized void updateSwitchConfig(int minLatencyMs,
@@ -96,6 +102,11 @@ public class BinaryTcpTestSwitchServer implements Runnable {
                         break;
                     }
 
+                    // ✅ record request AFTER reading
+                    serverMetrics.recordRequest();
+
+                    long start = System.currentTimeMillis();
+
                     IsoMessage request = unpacker.unpack(requestBytes);
 
                     System.out.println("===== DYNAMIC SERVER RECEIVED =====");
@@ -104,8 +115,14 @@ public class BinaryTcpTestSwitchServer implements Runnable {
                     SwitchResponse switchResponse = DynamicTestSwitch.process(request);
 
                     if (!switchResponse.isTimeout() && switchResponse.getResponseMessage() != null) {
+
                         byte[] responseBytes = packer.pack(switchResponse.getResponseMessage());
                         BinaryMessageIO.writeMessage(output, responseBytes);
+
+                        long latency = System.currentTimeMillis() - start;
+
+                        // ✅ record response
+                        serverMetrics.recordResponse(latency);
 
                         System.out.println("===== DYNAMIC SERVER SENT =====");
                         System.out.println(switchResponse.getResponseMessage());
@@ -118,8 +135,7 @@ public class BinaryTcpTestSwitchServer implements Runnable {
                     e.printStackTrace();
                 }
             }
-        }
-    }
+        }    }
 
     public void stop() {
         running = false;
@@ -132,5 +148,9 @@ public class BinaryTcpTestSwitchServer implements Runnable {
             System.err.println("Error while stopping dynamic TCP server");
             e.printStackTrace();
         }
+    }
+
+    public ServerMetricsCollector getServerMetrics() {
+        return serverMetrics;
     }
 }

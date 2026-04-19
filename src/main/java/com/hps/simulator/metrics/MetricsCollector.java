@@ -1,10 +1,12 @@
 package com.hps.simulator.metrics;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MetricsCollector {
-
-    private final long startTime;
 
     private final AtomicLong totalTransactions = new AtomicLong(0);
     private final AtomicLong successCount = new AtomicLong(0);
@@ -12,10 +14,14 @@ public class MetricsCollector {
     private final AtomicLong timeoutCount = new AtomicLong(0);
     private final AtomicLong totalLatency = new AtomicLong(0);
 
-    private long endTime;
+    private final long startTimeMillis;
+    private volatile long endTimeMillis;
+
+    private final ConcurrentHashMap<Long, SecondMetricsBucket> timeline = new ConcurrentHashMap<Long, SecondMetricsBucket>();
 
     public MetricsCollector() {
-        this.startTime = System.currentTimeMillis();
+        this.startTimeMillis = System.currentTimeMillis();
+        this.endTimeMillis = 0L;
     }
 
     public void recordTransactionResult(TransactionResult result) {
@@ -34,15 +40,15 @@ public class MetricsCollector {
         }
 
         totalLatency.addAndGet(result.getLatencyMillis());
+
+        long second = Math.max(0L, (result.getTimestamp() - startTimeMillis) / 1000L);
+
+        timeline.computeIfAbsent(second, SecondMetricsBucket::new).record(result);
     }
 
     public void stop() {
-        this.endTime = System.currentTimeMillis();
+        this.endTimeMillis = System.currentTimeMillis();
     }
-
-    // ======================
-    // GETTERS POUR UI
-    // ======================
 
     public long getTotalTransactions() {
         return totalTransactions.get();
@@ -60,33 +66,35 @@ public class MetricsCollector {
         return timeoutCount.get();
     }
 
-    public double getGlobalTps() {
-        long durationMillis = endTime - startTime;
-        if (durationMillis <= 0) return 0;
-
-        return (totalTransactions.get() * 1000.0) / durationMillis;
-    }
-
     public double getAverageLatency() {
         long total = totalTransactions.get();
-        if (total == 0) return 0;
-
+        if (total == 0) {
+            return 0.0;
+        }
         return totalLatency.get() * 1.0 / total;
     }
 
-    // ======================
-    // OPTIONNEL (console)
-    // ======================
+    public double getGlobalTps() {
+        long effectiveEnd = (endTimeMillis > 0L) ? endTimeMillis : System.currentTimeMillis();
+        long durationMillis = Math.max(1L, effectiveEnd - startTimeMillis);
+        return totalTransactions.get() * 1000.0 / durationMillis;
+    }
 
-    public void printSummary() {
-        System.out.println("========== SIMULATION SUMMARY ==========");
-        System.out.println("Duration (ms): " + (endTime - startTime));
-        System.out.println("Total transactions: " + getTotalTransactions());
-        System.out.println("Success: " + getSuccessCount());
-        System.out.println("Error: " + getErrorCount());
-        System.out.println("Timeout: " + getTimeoutCount());
-        System.out.println("Global TPS: " + String.format("%.2f", getGlobalTps()));
-        System.out.println("Average latency (ms): " + String.format("%.2f", getAverageLatency()));
-        System.out.println("========================================");
+    public List<SecondMetricsPoint> getTimelinePoints() {
+        List<SecondMetricsPoint> points = new ArrayList<SecondMetricsPoint>();
+
+        for (SecondMetricsBucket bucket : timeline.values()) {
+            points.add(new SecondMetricsPoint(
+                    bucket.getSecondEpoch(),
+                    bucket.getTotal(),
+                    bucket.getSuccess(),
+                    bucket.getError(),
+                    bucket.getTimeout(),
+                    bucket.getAverageLatency()
+            ));
+        }
+
+        points.sort(Comparator.comparingLong(SecondMetricsPoint::getSecond));
+        return points;
     }
 }

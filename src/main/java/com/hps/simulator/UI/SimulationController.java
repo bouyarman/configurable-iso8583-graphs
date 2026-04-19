@@ -4,14 +4,15 @@ import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.iso.XmlIsoMessageLoader;
 import com.hps.simulator.logging.RunManager;
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.metrics.SecondMetricsPoint;
+import com.hps.simulator.metrics.ServerMetricsCollector;
+import com.hps.simulator.metrics.ServerSecondMetricsBucket;
+import com.hps.simulator.network.BinaryTcpTestSwitchServer;
 import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.profile.TerminalProfileLoader;
 import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
 import com.hps.simulator.protocol.model.ProtocolDefinition;
-import com.hps.simulator.session.ConnectionService;
-import com.hps.simulator.session.ConnectedTerminalSession;
-import com.hps.simulator.session.SimulationRunner;
-import com.hps.simulator.session.SimulationSession;
+import com.hps.simulator.session.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,15 +26,20 @@ public class SimulationController {
 
     private final ConnectionService connectionService;
     private final SimulationSessionStore sessionStore;
+    private final ServerMetricsCollector serverMetricsCollector;
+
 
     private ProtocolDefinition protocol;
     private IsoMessage template;
 
     public SimulationController(ConnectionService connectionService,
-                                SimulationSessionStore sessionStore
+                                SimulationSessionStore sessionStore,
+                                ServerMetricsCollector serverMetricsCollector
                                 ) {
         this.connectionService = connectionService;
         this.sessionStore = sessionStore;
+        this.serverMetricsCollector = serverMetricsCollector;
+
     }
 
     @GetMapping("/")
@@ -49,6 +55,9 @@ public class SimulationController {
             request.setTpsPerTerminal(2);
             request.setDurationSeconds(10);
             request.setEnableLogs(false);
+            request.setTestMode(TestMode.FIXED_TPS_PER_TERMINAL);
+            request.setRampUpStepTps(10);
+            request.setRampUpIntervalSeconds(10);
         }
 
         model.addAttribute("request", request);
@@ -60,6 +69,8 @@ public class SimulationController {
     @PostMapping("/connect")
     public String connect(@ModelAttribute("request") SimulationRequest request, Model model) {
         try {
+            serverMetricsCollector.reset();
+
             protocol = ProtocolXmlLoader.load(
                     "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
             );
@@ -132,6 +143,9 @@ public class SimulationController {
             request.setTpsPerTerminal(2);
             request.setDurationSeconds(10);
             request.setEnableLogs(false);
+            request.setTestMode(TestMode.FIXED_TPS_PER_TERMINAL);
+            request.setRampUpStepTps(10);
+            request.setRampUpIntervalSeconds(10);
         }
 
         model.addAttribute("request", request);
@@ -146,15 +160,60 @@ public class SimulationController {
             model.addAttribute("message", "Dynamic protocol not loaded. Please connect first.");
             return "index";
         }
+        if (request.getTestMode() == null) {
+            request.setTestMode(TestMode.FIXED_TPS_PER_TERMINAL);
+        }
 
+        if (request.getTpsPerTerminal() <= 0) {
+            model.addAttribute("message", "Initial TPS Per Terminal must be greater than 0.");
+            return "index";
+        }
+
+        if (request.getDurationSeconds() <= 0) {
+            model.addAttribute("message", "Duration must be greater than 0.");
+            return "index";
+        }
+
+        if (request.getTestMode() == TestMode.RAMP_UP_TPS_PER_TERMINAL) {
+            if (request.getRampUpStepTps() == null || request.getRampUpStepTps() <= 0) {
+                model.addAttribute("message", "Ramp-Up Step TPS must be greater than 0.");
+                return "index";
+            }
+
+            if (request.getRampUpIntervalSeconds() == null || request.getRampUpIntervalSeconds() <= 0) {
+                model.addAttribute("message", "Ramp-Up Interval Seconds must be greater than 0.");
+                return "index";
+            }
+        }
         SimulationRunner runner = new SimulationRunner();
 
         // IMPORTANT: use the dynamic runSimulation overload
         MetricsCollector metrics = runner.runSimulation(
                 session,
-                request.getDurationSeconds(),
+                request,
                 protocol
         );
+        System.out.println("===== SERVER TIMELINE =====");
+        for (ServerSecondMetricsBucket bucket : serverMetricsCollector.getTimeline()) {
+            System.out.println(
+                    "SERVER second=" + bucket.getSecond()
+                            + ", req=" + bucket.getRequests()
+                            + ", res=" + bucket.getResponses()
+                            + ", avgLatency=" + bucket.getAverageLatency()
+            );
+        }
+        System.out.println("===== CLIENT TIMELINE =====");
+        for (SecondMetricsPoint point : metrics.getTimelinePoints()) {
+            System.out.println(
+                    "CLIENT second=" + point.getSecond()
+                            + ", total=" + point.getTotal()
+                            + ", success=" + point.getSuccess()
+                            + ", error=" + point.getError()
+                            + ", timeout=" + point.getTimeout()
+                            + ", avgLatency=" + point.getAverageLatency()
+            );
+        }
+
 
         SimulationResultView result = new SimulationResultView(
                 metrics.getTotalTransactions(),
@@ -166,8 +225,11 @@ public class SimulationController {
         );
 
         model.addAttribute("result", result);
-        model.addAttribute("message", "Dynamic simulation completed.");
+        String modeLabel = request.getTestMode() == TestMode.RAMP_UP_TPS_PER_TERMINAL
+                ? "Ramp-Up TPS Per Terminal"
+                : "Fixed TPS Per Terminal";
 
+        model.addAttribute("message", modeLabel + " simulation completed.");
         return "index";
     }
 }

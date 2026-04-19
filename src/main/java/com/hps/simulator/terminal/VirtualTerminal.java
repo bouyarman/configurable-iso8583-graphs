@@ -7,7 +7,7 @@ import com.hps.simulator.profile.TerminalProfile;
 public class VirtualTerminal {
 
     private final String terminalId;
-    private final int tps;
+    private int tps;
     private final AuthorizationScenario scenario;
 
     private TerminalProfile profile;
@@ -25,7 +25,7 @@ public class VirtualTerminal {
     }
 
     public IsoMessage generateTransaction() {
-        long amount = 100 + (long) (Math.random() * 100000);
+        long amount = (long) (Math.random() * 100000);
 
         if (template == null) {
             throw new IllegalStateException("Dynamic template is not set for terminal " + terminalId);
@@ -40,6 +40,13 @@ public class VirtualTerminal {
 
     public int getTps() {
         return tps;
+    }
+
+    public void setTps(int tps) {
+        if (tps <= 0) {
+            throw new IllegalArgumentException("TPS must be greater than 0");
+        }
+        this.tps = tps;
     }
 
     public TerminalProfile getProfile() {

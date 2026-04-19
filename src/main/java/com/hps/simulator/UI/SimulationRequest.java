@@ -1,5 +1,7 @@
 package com.hps.simulator.UI;
 
+import com.hps.simulator.session.TestMode;
+
 public class SimulationRequest {
 
     private String host;
@@ -7,11 +9,15 @@ public class SimulationRequest {
     private int terminalCount;
     private int timeoutMillis;
     private int tpsPerTerminal;
-
     private int durationSeconds;
+    private boolean enableLogs;
+
     private int minLatencyMs;
     private int maxLatencyMs;
-    private boolean enableLogs;
+
+    private TestMode testMode;
+    private Integer rampUpStepTps;
+    private Integer rampUpIntervalSeconds;
 
     public String getHost() {
         return host;
@@ -53,15 +59,59 @@ public class SimulationRequest {
         this.tpsPerTerminal = tpsPerTerminal;
     }
 
-    public int getDurationSeconds() { return durationSeconds; }
-    public void setDurationSeconds(int durationSeconds) { this.durationSeconds = durationSeconds; }
+    public int getDurationSeconds() {
+        return durationSeconds;
+    }
 
-    public int getMinLatencyMs() { return minLatencyMs; }
-    public void setMinLatencyMs(int minLatencyMs) { this.minLatencyMs = minLatencyMs; }
+    public void setDurationSeconds(int durationSeconds) {
+        this.durationSeconds = durationSeconds;
+    }
 
-    public int getMaxLatencyMs() { return maxLatencyMs; }
-    public void setMaxLatencyMs(int maxLatencyMs) { this.maxLatencyMs = maxLatencyMs; }
+    public boolean isEnableLogs() {
+        return enableLogs;
+    }
 
-    public boolean isEnableLogs() { return enableLogs; }
-    public void setEnableLogs(boolean enableLogs) { this.enableLogs = enableLogs; }
+    public void setEnableLogs(boolean enableLogs) {
+        this.enableLogs = enableLogs;
+    }
+
+    public int getMinLatencyMs() {
+        return minLatencyMs;
+    }
+
+    public void setMinLatencyMs(int minLatencyMs) {
+        this.minLatencyMs = minLatencyMs;
+    }
+
+    public int getMaxLatencyMs() {
+        return maxLatencyMs;
+    }
+
+    public void setMaxLatencyMs(int maxLatencyMs) {
+        this.maxLatencyMs = maxLatencyMs;
+    }
+
+    public TestMode getTestMode() {
+        return testMode;
+    }
+
+    public void setTestMode(TestMode testMode) {
+        this.testMode = testMode;
+    }
+
+    public Integer getRampUpStepTps() {
+        return rampUpStepTps;
+    }
+
+    public void setRampUpStepTps(Integer rampUpStepTps) {
+        this.rampUpStepTps = rampUpStepTps;
+    }
+
+    public Integer getRampUpIntervalSeconds() {
+        return rampUpIntervalSeconds;
+    }
+
+    public void setRampUpIntervalSeconds(Integer rampUpIntervalSeconds) {
+        this.rampUpIntervalSeconds = rampUpIntervalSeconds;
+    }
 }
