@@ -103,9 +103,8 @@ public class BinaryTcpTestSwitchServer implements Runnable {
                     }
 
                     // ✅ record request AFTER reading
-                    serverMetrics.recordRequest();
-
-                    long start = System.currentTimeMillis();
+                    long requestStartMillis = System.currentTimeMillis();
+                    serverMetrics.recordRequest(requestStartMillis);
 
                     IsoMessage request = unpacker.unpack(requestBytes);
 
@@ -115,14 +114,12 @@ public class BinaryTcpTestSwitchServer implements Runnable {
                     SwitchResponse switchResponse = DynamicTestSwitch.process(request);
 
                     if (!switchResponse.isTimeout() && switchResponse.getResponseMessage() != null) {
-
                         byte[] responseBytes = packer.pack(switchResponse.getResponseMessage());
                         BinaryMessageIO.writeMessage(output, responseBytes);
 
-                        long latency = System.currentTimeMillis() - start;
+                        long latency = System.currentTimeMillis() - requestStartMillis;
 
-                        // ✅ record response
-                        serverMetrics.recordResponse(latency);
+                        serverMetrics.recordResponse(requestStartMillis, latency);
 
                         System.out.println("===== DYNAMIC SERVER SENT =====");
                         System.out.println(switchResponse.getResponseMessage());

@@ -13,8 +13,8 @@ public class ServerMetricsCollector {
     private final ConcurrentHashMap<Long, ServerSecondMetricsBucket> timeline =
             new ConcurrentHashMap<Long, ServerSecondMetricsBucket>();
 
-    private long getRawSecond() {
-        return (System.currentTimeMillis() - startTimeMillis) / 1000L;
+    private long toRawSecond(long timestampMillis) {
+        return (timestampMillis - startTimeMillis) / 1000L;
     }
 
     private synchronized long normalizeSecond(long rawSecond) {
@@ -24,24 +24,26 @@ public class ServerMetricsCollector {
         return rawSecond - firstObservedSecond;
     }
 
-    public void recordRequest() {
-        long rawSecond = getRawSecond();
-        long second = normalizeSecond(rawSecond);
+    private long toNormalizedSecond(long timestampMillis) {
+        long rawSecond = toRawSecond(timestampMillis);
+        return normalizeSecond(rawSecond);
+    }
 
+    public void recordRequest(long requestTimestampMillis) {
+        long second = toNormalizedSecond(requestTimestampMillis);
         timeline.computeIfAbsent(second, ServerSecondMetricsBucket::new)
                 .recordRequest();
     }
 
-    public void recordResponse(long latencyMillis) {
-        long rawSecond = getRawSecond();
-        long second = normalizeSecond(rawSecond);
-
+    public void recordResponse(long requestTimestampMillis, long latencyMillis) {
+        long second = toNormalizedSecond(requestTimestampMillis);
         timeline.computeIfAbsent(second, ServerSecondMetricsBucket::new)
                 .recordResponse(latencyMillis);
     }
 
     public List<ServerSecondMetricsBucket> getTimeline() {
-        List<ServerSecondMetricsBucket> list = new ArrayList<ServerSecondMetricsBucket>(timeline.values());
+        List<ServerSecondMetricsBucket> list =
+                new ArrayList<ServerSecondMetricsBucket>(timeline.values());
         list.sort(Comparator.comparingLong(ServerSecondMetricsBucket::getSecond));
         return list;
     }
