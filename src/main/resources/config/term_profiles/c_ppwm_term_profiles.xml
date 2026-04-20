@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<TerminalProfiles >
-	
-	<TerminalProfile Name="TERM_M_0000000000000_ID_2010101" TermId="00000087" OutletNo="200000150000101" TermAddr="MER_POS_5542_AFD                      MA" MCC="1731" TermData="500020     "  TMK="TMK_01"  TPK="TPK_01" AcquirerId="000005" ParamFile="PPWM/term1_param.xml"  TrnFile="PPWM/TERM_M_5993_ID_0000000000000000_TRN.BATCH_000000_RES.xml"  Description=""/>
-
-	
-</TerminalProfiles>

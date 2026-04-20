@@ -13,6 +13,7 @@ import com.hps.simulator.profile.TerminalProfileLoader;
 import com.hps.simulator.protocol.loader.ProtocolXmlLoader;
 import com.hps.simulator.protocol.model.ProtocolDefinition;
 import com.hps.simulator.session.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,15 @@ public class SimulationController {
     private final ConnectionService connectionService;
     private final SimulationSessionStore sessionStore;
     private final ServerMetricsCollector serverMetricsCollector;
+
+    @Value("${simulator.protocol.path}")
+    private String protocolPath;
+
+    @Value("${simulator.message.path}")
+    private String messagePath;
+
+    @Value("${simulator.profile.path}")
+    private String profilePath;
 
 
     private ProtocolDefinition protocol;
@@ -68,20 +78,28 @@ public class SimulationController {
 
     @PostMapping("/connect")
     public String connect(@ModelAttribute("request") SimulationRequest request, Model model) {
+
         try {
             serverMetricsCollector.reset();
 
+
             protocol = ProtocolXmlLoader.load(
-                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\protocols\\ppwm_protocol.xml"
+                    new java.io.File(
+                            getClass().getClassLoader().getResource(protocolPath).toURI()
+                    ).getAbsolutePath()
             );
 
             XmlIsoMessageLoader xmlLoader = new XmlIsoMessageLoader();
             template = xmlLoader.load(
-                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\scenes\\cases\\c_ppwm\\1100_EMV_Preauth_Request.xml"
+                    new java.io.File(
+                            getClass().getClassLoader().getResource(messagePath).toURI()
+                    ).getAbsolutePath()
             );
 
             List<TerminalProfile> profiles = TerminalProfileLoader.loadFromFile(
-                    "C:\\Users\\bouya\\Downloads\\PSTT\\PSTT\\pstt_conf\\Data\\c_vl_35_term_profiles.xml"
+                    new java.io.File(
+                            getClass().getClassLoader().getResource(profilePath).toURI()
+                    ).getAbsolutePath()
             );
 
             if (sessionStore.hasSession()) {

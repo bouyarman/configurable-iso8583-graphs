@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<TerminalProfiles >
+
+<TerminalProfile 	Name="MER_B20_TERM_1" 
+					TermId="70010001" 
+					OutletNo="200000150000001" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "5994" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_2" 
+					TermId="70010002" 
+					OutletNo="200000150000001" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "5994" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_3" 
+					TermId="70010003" 
+					OutletNo="200000150000003" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "6010" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_4" 
+					TermId="70010004" 
+					OutletNo="200000150000004" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "6051" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_5" 
+					TermId="70010005" 
+					OutletNo="200000150000001" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "5994" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>					
+<TerminalProfile 	Name="MER_B20_TERM_6" 
+					TermId="70010006" 
+					OutletNo="200000150000003" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "6010" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_7" 
+					TermId="70010007" 
+					OutletNo="200000150000003" 
+					TermAddr="BANANA REPUBLIC                    TY PR" 
+					MCC= "6010" 
+					TermData="500020     00450000000001230000000000000"  
+					TPK="TPK_01" 
+					TMK="TMK_01"
+					/>			
+
+
+<!-- WITHDRAWAL-->
+<TerminalProfile 	Name="MER_B20_TERM_10" TermId="70010010" OutletNo="200000150000002" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "6011" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+<!-- PURCHASE INTER -->
+<TerminalProfile 	Name="MER_B20_TERM_11" TermId="70010011" OutletNo="200000150000001" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "5994" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+<!-- WITHDRAWAL NAT -->
+<TerminalProfile 	Name="MER_B20_TERM_12" TermId="70010012" OutletNo="200000150000002" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "6011" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+<!-- WITHDRAWAL INTER -->
+<TerminalProfile 	Name="MER_B20_TERM_13" TermId="70010013" OutletNo="200000150000002" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "6011" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+<!-- Trminal 08 - ajouté pour remplacer MER_B20_TERM_8 --> 			
+<TerminalProfile 	Name="MER_B20_TERM_8" TermId="70010013" OutletNo="200000150000002" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "6011" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+
+
+<TerminalProfile Name="MER_VISA_SHOP" TermId="91029002" OutletNo="100000000000081" TermAddr="MER_ATM_SERVIBANCA_OTHERS          TY PR" MCC="3504" TermData=""  Description=""/>
+		
+
+<!-- WITHDRAWAL-->
+<TerminalProfile 	Name="MER_B20_TERM_9" TermId="70020001" OutletNo="200000250000001" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "6011" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>	
+
+<TerminalProfile 	Name="MER_B20_TERM_15" TermId="70010005" OutletNo="200000150000001" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "3004" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+<TerminalProfile 	Name="MER_B20_TERM_16" TermId="70010005" OutletNo="200000150000001" TermAddr="BANANA REPUBLIC                    TY PR" MCC= "3014" TermData="500020     00450000000001230000000000000"  TPK="TPK_01" TMK="TMK_01"
+					/>
+					
+</TerminalProfiles>  
+
+
+
