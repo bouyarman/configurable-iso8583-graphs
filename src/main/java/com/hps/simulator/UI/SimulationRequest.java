@@ -1,5 +1,7 @@
 package com.hps.simulator.UI;
 
+import com.hps.simulator.session.LaunchStrategy;
+import com.hps.simulator.session.SequentialDivision;
 import com.hps.simulator.session.TestMode;
 
 public class SimulationRequest {
@@ -15,9 +17,23 @@ public class SimulationRequest {
     private int minLatencyMs;
     private int maxLatencyMs;
 
+    private LaunchStrategy launchStrategy;
+    private SequentialDivision sequentialDivision;
+
     private TestMode testMode;
     private Integer rampUpStepTps;
     private Integer rampUpIntervalSeconds;
+
+
+    private Integer targetTpsPerTerminal;
+
+    public Integer getTargetTpsPerTerminal() {
+        return targetTpsPerTerminal;
+    }
+
+    public void setTargetTpsPerTerminal(Integer targetTpsPerTerminal) {
+        this.targetTpsPerTerminal = targetTpsPerTerminal;
+    }
 
     public String getHost() {
         return host;
@@ -109,6 +125,22 @@ public class SimulationRequest {
 
     public Integer getRampUpIntervalSeconds() {
         return rampUpIntervalSeconds;
+    }
+
+    public LaunchStrategy getLaunchStrategy() {
+        return launchStrategy;
+    }
+
+    public void setLaunchStrategy(LaunchStrategy launchStrategy) {
+        this.launchStrategy = launchStrategy;
+    }
+
+    public SequentialDivision getSequentialDivision() {
+        return sequentialDivision;
+    }
+
+    public void setSequentialDivision(SequentialDivision sequentialDivision) {
+        this.sequentialDivision = sequentialDivision;
     }
 
     public void setRampUpIntervalSeconds(Integer rampUpIntervalSeconds) {

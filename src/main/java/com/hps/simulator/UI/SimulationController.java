@@ -68,6 +68,7 @@ public class SimulationController {
             request.setTestMode(TestMode.FIXED_TPS_PER_TERMINAL);
             request.setRampUpStepTps(10);
             request.setRampUpIntervalSeconds(10);
+            request.setTargetTpsPerTerminal(10);
         }
 
         model.addAttribute("request", request);
@@ -81,7 +82,6 @@ public class SimulationController {
 
         try {
             serverMetricsCollector.reset();
-
 
             protocol = ProtocolXmlLoader.load(
                     new java.io.File(
@@ -164,6 +164,8 @@ public class SimulationController {
             request.setTestMode(TestMode.FIXED_TPS_PER_TERMINAL);
             request.setRampUpStepTps(10);
             request.setRampUpIntervalSeconds(10);
+            request.setLaunchStrategy(LaunchStrategy.PARALLEL);
+            request.setSequentialDivision(SequentialDivision.ONE_QUARTER);
         }
 
         model.addAttribute("request", request);
@@ -200,6 +202,17 @@ public class SimulationController {
 
             if (request.getRampUpIntervalSeconds() == null || request.getRampUpIntervalSeconds() <= 0) {
                 model.addAttribute("message", "Ramp-Up Interval Seconds must be greater than 0.");
+                return "index";
+            }
+        }
+        if (request.getTestMode() == TestMode.LINEAR_TPS_PER_TERMINAL) {
+            if (request.getTargetTpsPerTerminal() == null || request.getTargetTpsPerTerminal() <= 0) {
+                model.addAttribute("message", "Target TPS Per Terminal must be greater than 0.");
+                return "index";
+            }
+
+            if (request.getTargetTpsPerTerminal() < request.getTpsPerTerminal()) {
+                model.addAttribute("message", "Target TPS Per Terminal must be greater than or equal to Initial TPS Per Terminal.");
                 return "index";
             }
         }
@@ -243,9 +256,15 @@ public class SimulationController {
         );
 
         model.addAttribute("result", result);
-        String modeLabel = request.getTestMode() == TestMode.RAMP_UP_TPS_PER_TERMINAL
-                ? "Ramp-Up TPS Per Terminal"
-                : "Fixed TPS Per Terminal";
+        String modeLabel;
+
+        if (request.getTestMode() == TestMode.RAMP_UP_TPS_PER_TERMINAL) {
+            modeLabel = "Ramp-Up TPS Per Terminal";
+        } else if (request.getTestMode() == TestMode.LINEAR_TPS_PER_TERMINAL) {
+            modeLabel = "Linear TPS Per Terminal";
+        } else {
+            modeLabel = "Fixed TPS Per Terminal";
+        }
 
         model.addAttribute("message", modeLabel + " simulation completed.");
         return "index";

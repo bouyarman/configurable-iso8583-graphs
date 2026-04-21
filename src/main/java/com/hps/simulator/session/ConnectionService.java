@@ -51,7 +51,7 @@ public class ConnectionService {
 
             try {
                 client.connect();
-                connectedTerminals.add(new ConnectedTerminalSession(terminal, client));
+                connectedTerminals.add(new ConnectedTerminalSession(terminal, client, i));
                 connectionResults.add(new TerminalConnectionResult(terminalId, true, null));
             } catch (Exception e) {
                 connectionResults.add(new TerminalConnectionResult(terminalId, false, e.getMessage()));

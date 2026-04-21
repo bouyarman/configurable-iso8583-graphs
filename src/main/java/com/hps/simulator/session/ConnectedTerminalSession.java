@@ -7,10 +7,14 @@ public class ConnectedTerminalSession {
 
     private final VirtualTerminal terminal;
     private final BinaryIsoTcpClient client;
+    private final int terminalIndex;
 
-    public ConnectedTerminalSession(VirtualTerminal terminal, BinaryIsoTcpClient client) {
+    public ConnectedTerminalSession(VirtualTerminal terminal,
+                                    BinaryIsoTcpClient client,
+                                    int terminalIndex) {
         this.terminal = terminal;
         this.client = client;
+        this.terminalIndex = terminalIndex;
     }
 
     public VirtualTerminal getTerminal() {
@@ -19,5 +23,9 @@ public class ConnectedTerminalSession {
 
     public BinaryIsoTcpClient getClient() {
         return client;
+    }
+
+    public int getTerminalIndex() {
+        return terminalIndex;
     }
 }

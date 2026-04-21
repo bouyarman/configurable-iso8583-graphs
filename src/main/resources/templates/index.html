@@ -79,10 +79,17 @@
         <label>Port</label>
         <input type="number" th:field="*{port}" />
 
+        <label>Type de lancement</label>
+        <select th:field="*{launchStrategy}" id="launchStrategy">
+            <option value="PARALLEL">Parallèle</option>
+            <option value="SEQUENTIAL">Séquentiel</option>
+        </select>
+
         <label for="testMode">Test Type</label>
         <select id="testMode" th:field="*{testMode}" class="form-control" onchange="toggleRampUpFields()">
             <option value="FIXED_TPS_PER_TERMINAL">Fixed TPS Per Terminal</option>
             <option value="RAMP_UP_TPS_PER_TERMINAL">Ramp-Up TPS Per Terminal</option>
+            <option value="LINEAR_TPS_PER_TERMINAL">Linéaire TPS Par Terminal</option>
         </select>
 
         <label>Number of TPEs</label>
@@ -93,6 +100,21 @@
 
         <label>TPS per TPE</label>
         <input type="number" th:field="*{tpsPerTerminal}" />
+
+        <div id="linearOptions" style="display:none;">
+            <label>Target TPS Per Terminal</label>
+            <input type="number" th:field="*{targetTpsPerTerminal}" min="1" />
+        </div>
+
+        <div id="sequentialOptions" style="display:none;">
+            <label>Division (activation progressive)</label>
+            <select th:field="*{sequentialDivision}">
+                <option value="ONE_HALF">1/2</option>
+                <option value="ONE_QUARTER">1/4</option>
+                <option value="ONE_EIGHTH">1/8</option>
+                <option value="ONE_TENTH">1/10</option>
+            </select>
+        </div>
 
         <div id="rampUpFields">
             <div class="form-group">
@@ -180,6 +202,50 @@
     document.addEventListener("DOMContentLoaded", function () {
         toggleRampUpFields();
     });
+
+    const launchSelect = document.getElementById("launchStrategy");
+    const sequentialDiv = document.getElementById("sequentialOptions");
+
+    function toggleSequentialOptions() {
+        if (launchSelect.value === "SEQUENTIAL") {
+            sequentialDiv.style.display = "block";
+        } else {
+            sequentialDiv.style.display = "none";
+        }
+    }
+
+    // Initial check (important when page reloads)
+    toggleSequentialOptions();
+
+    // Listen for changes
+    launchSelect.addEventListener("change", toggleSequentialOptions);
+
+    const testModeSelect = document.getElementById("testMode");
+    const rampUpFields = document.getElementById("rampUpFields");
+    const linearOptions = document.getElementById("linearOptions");
+
+    function toggleTestModeOptions() {
+        const mode = testModeSelect.value;
+
+        if (mode === "RAMP_UP_TPS_PER_TERMINAL") {
+            rampUpFields.style.display = "block";
+        } else {
+            rampUpFields.style.display = "none";
+        }
+
+        if (mode === "LINEAR_TPS_PER_TERMINAL") {
+            linearOptions.style.display = "block";
+        } else {
+            linearOptions.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleTestModeOptions();
+    });
+
+    testModeSelect.addEventListener("change", toggleTestModeOptions);
 </script>
+
 </body>
 </html>

@@ -1,89 +1,88 @@
 package com.hps.simulator.terminal;
 
-import com.hps.simulator.iso.BinaryIsoMessagePacker;
-import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
-import com.hps.simulator.iso.IsoMessage;
-import com.hps.simulator.logging.TransactionLogger;
+import com.hps.simulator.UI.SimulationRequest;
 import com.hps.simulator.metrics.MetricsCollector;
 import com.hps.simulator.metrics.TransactionResult;
 import com.hps.simulator.metrics.TransactionStatus;
 import com.hps.simulator.network.BinaryIsoTcpClient;
 import com.hps.simulator.protocol.model.ProtocolDefinition;
-import com.hps.simulator.util.HexUtils;
-
-import java.net.SocketTimeoutException;
+import com.hps.simulator.iso.BinaryIsoMessagePacker;
+import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
+import com.hps.simulator.iso.IsoMessage;
+import com.hps.simulator.session.LaunchStrategy;
+import com.hps.simulator.session.SequentialDivision;
 
 public class TerminalWorker implements Runnable {
 
     private final VirtualTerminal terminal;
     private final MetricsCollector metricsCollector;
-    private final BinaryIsoTcpClient tcpClient;
+    private final BinaryIsoTcpClient client;
     private final BinaryIsoMessagePacker packer;
     private final BinaryIsoMessageUnpacker unpacker;
 
+    private final long simulationStartMillis;
+    private final SimulationRequest request;
+    private final int terminalIndex;
+    private final int totalTerminals;
+
     public TerminalWorker(VirtualTerminal terminal,
                           MetricsCollector metricsCollector,
-                          BinaryIsoTcpClient tcpClient,
-                          ProtocolDefinition protocol) {
+                          BinaryIsoTcpClient client,
+                          ProtocolDefinition protocol,
+                          long simulationStartMillis,
+                          SimulationRequest request,
+                          int terminalIndex,
+                          int totalTerminals) {
         this.terminal = terminal;
         this.metricsCollector = metricsCollector;
-        this.tcpClient = tcpClient;
+        this.client = client;
         this.packer = new BinaryIsoMessagePacker(protocol);
         this.unpacker = new BinaryIsoMessageUnpacker(protocol);
+        this.simulationStartMillis = simulationStartMillis;
+        this.request = request;
+        this.terminalIndex = terminalIndex;
+        this.totalTerminals = totalTerminals;
     }
 
     @Override
     public void run() {
         try {
+            long elapsedMillis = System.currentTimeMillis() - simulationStartMillis;
+            if (elapsedMillis >= request.getDurationSeconds() * 1000L) {
+                return;
+            }
+            if (!isTerminalActive()) {
+                return;
+            }
+
             long start = System.currentTimeMillis();
 
-            IsoMessage request = terminal.generateTransaction();
-            byte[] requestBytes = packer.pack(request);
-
-            TransactionLogger.logRequest(
-                    "REQUEST | terminal=" + terminal.getTerminalId()
-                            + " | stan=" + request.getField(11)
-                            + " | mti=" + request.getMti()
-                            + "\n" + request.toString()
-                            + "\nHEX: " + HexUtils.toHex(requestBytes)
-            );
-
-            byte[] responseBytes = tcpClient.sendAndReceive(requestBytes);
-            long latency = System.currentTimeMillis() - start;
+            IsoMessage requestMessage = terminal.generateTransaction();
+            byte[] requestBytes = packer.pack(requestMessage);
+            byte[] responseBytes = client.sendAndReceive(requestBytes);
 
             IsoMessage response = unpacker.unpack(responseBytes);
-            String responseCode = response.getField(39);
+            long latency = System.currentTimeMillis() - start;
 
+            String responseCode = response.getField(39);
             TransactionStatus status =
-                    "000".equals(responseCode) || "00".equals(responseCode)
+                    ("000".equals(responseCode) || "00".equals(responseCode))
                             ? TransactionStatus.SUCCESS
                             : TransactionStatus.ERROR;
 
-            TransactionLogger.logResponse(
-                    "RESPONSE | terminal=" + terminal.getTerminalId()
-                            + " | stan=" + request.getField(11)
-                            + " | requestMti=" + request.getMti()
-                            + " | responseMti=" + response.getMti()
-                            + " | rc=" + responseCode
-                            + "\n" + response.toString()
-                            + "\nHEX: " + HexUtils.toHex(responseBytes)
-                            + "\nstatus=" + status
-                            + ", latency=" + latency + " ms"
-            );
-
             TransactionResult result = new TransactionResult(
                     terminal.getTerminalId(),
-                    request.getField(11),
-                    request.getMti(),
+                    requestMessage.getField(11),
+                    requestMessage.getMti(),
                     status,
                     responseCode,
                     latency,
-                    System.currentTimeMillis()
+                    start
             );
 
             metricsCollector.recordTransactionResult(result);
 
-        } catch (SocketTimeoutException e) {
+        } catch (Exception e) {
             TransactionResult result = new TransactionResult(
                     terminal.getTerminalId(),
                     null,
@@ -94,9 +93,37 @@ public class TerminalWorker implements Runnable {
                     System.currentTimeMillis()
             );
             metricsCollector.recordTransactionResult(result);
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
+    }
+
+    private boolean isTerminalActive() {
+        if (request.getLaunchStrategy() == LaunchStrategy.PARALLEL) {
+            return true;
+        }
+
+        SequentialDivision division = request.getSequentialDivision();
+        if (division == null) {
+            return true;
+        }
+
+        int groups = division.getDivisor();
+        int durationSeconds = request.getDurationSeconds();
+
+        if (groups <= 1 || durationSeconds <= 0) {
+            return true;
+        }
+
+        long elapsedMillis = System.currentTimeMillis() - simulationStartMillis;
+        long elapsedSeconds = Math.max(0L, elapsedMillis / 1000L);
+
+        int stageDuration = Math.max(1, durationSeconds / groups);
+
+        int currentStage = (int) Math.min(groups - 1, elapsedSeconds / stageDuration);
+
+        int activeGroups = currentStage + 1;
+
+        int activeTerminals = (int) Math.ceil((activeGroups * totalTerminals) / (double) groups);
+
+        return terminalIndex < activeTerminals;
     }
 }
