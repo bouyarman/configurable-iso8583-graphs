@@ -19,7 +19,7 @@ public class TestSwitch {
     public SwitchResponse process(IsoMessage request) throws InterruptedException {
         long start = System.currentTimeMillis();
 
-        if (("0200".equals(request.getMti()) || "1100".equals(request.getMti()))
+        if (("1200".equals(request.getMti()) || "1100".equals(request.getMti()))
                 && Math.random() < timeoutProbability) {
             Thread.sleep(timeoutLatencyMs);
             long latency = System.currentTimeMillis() - start;
@@ -34,9 +34,9 @@ public class TestSwitch {
         Thread.sleep(processingLatency);
 
         IsoMessage response;
-        if ("0200".equals(request.getMti())) {
+        if ("1200".equals(request.getMti())) {
             String responseCode = resolveResponseCode(request);
-            response = build0200Response(request, responseCode);
+            response = build1200Response(request, responseCode);
         } else if ("0400".equals(request.getMti())) {
             response = build0400Response(request, "000");
         } else if ("1100".equals(request.getMti())) {
@@ -70,10 +70,10 @@ public class TestSwitch {
         }
     }
 
-    private IsoMessage build0200Response(IsoMessage request, String responseCode) {
+    private IsoMessage build1200Response(IsoMessage request, String responseCode) {
         IsoMessage response = new IsoMessage();
         response.setHeader(request.getHeader());
-        response.setMti("0210");
+        response.setMti("1210");
 
         copyIfPresent(request, response, 3);
         copyIfPresent(request, response, 4);

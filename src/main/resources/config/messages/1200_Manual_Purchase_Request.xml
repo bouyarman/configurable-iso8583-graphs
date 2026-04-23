@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<BaseMessage	Description="Manual Purchase request">
+
+<MessageInfo>
+<MsgType Value="1200"/>
+<MsgHeader Value="ISO0416211111000"/>
+ <Field Number="002"	Value="4260000000510013"/>
+ <Field Number="003"	Value="000000"/>
+ <Field Number="004"	Value="000000002500"/>
+ <Field Number="007"	Value="1612282045"/>
+ <Field Number="011"	Value="001282"/>
+ <Field Number="012"	Value="161228204428"/>
+ <Field Number="014"	Value="3012"/>
+ <Field Number="017"	Value="1228"/>
+ <Field Number="022"	Value="310310603146"/>
+ <Field Number="024"	Value="200"/>
+ <Field Number="026"	Value="5993"/>
+ <Field Number="032"	Value="101010"/>
+ <Field Number="037"	Value="001282000000"/>
+ <Field Number="041"	Value="20000101"/>
+ <Field Number="042"	Value="POSFIN001      "/>
+ <Field Number="043"	Value="SHOPPING CIGAR          CASA                    00MAR"/>
+ <Field Number="048"	Value="R02017VX520-260-449-958R03008QT520245R040086.2.0.05"/>
+ <Field Number="049"	Value="504"/>
+ <Field Number="053"	Value="0099000000"/>
+ <Field Number="063"	Value="00000200100300100036387000005"/>
+ <Field Number="064"	Value="2E95EA4F"/>
+ </MessageInfo>
+
+</BaseMessage>

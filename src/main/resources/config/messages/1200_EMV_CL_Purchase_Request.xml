@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<BaseMessage	Description="Contactless EMV Purchase request">
+
+<MessageInfo>
+<MsgType Value="1200"/>
+<MsgHeader Value="ISO0416211111000"/>
+ <Field Number="002"	Value="4260000000510013"/>
+ <Field Number="003"	Value="000000"/>
+ <Field Number="004"	Value="000000001000"/>
+ <Field Number="007"	Value="1612282000"/>
+ <Field Number="011"	Value="001250"/>
+ <Field Number="012"	Value="161228195959"/>
+ <Field Number="014"	Value="3012"/>
+ <Field Number="017"	Value="1228"/>
+ <Field Number="022"	Value="310301313146"/>
+ <Field Number="023"	Value="001"/>
+ <Field Number="024"	Value="200"/>
+ <Field Number="026"	Value="5993"/>
+ <Field Number="032"	Value="SIAARG"/>
+ <Field Number="035"	Value="4260000000510013=30122011469629300000"/>
+ <Field Number="037"	Value="001250000000"/>
+ <Field Number="041"	Value="20000101"/>
+ <Field Number="042"	Value="POSFIN001      "/>
+ <Field Number="043"	Value="SHOPPING CIGAR          CASA                    03MAR"/>
+ <Field Number="048"	Value="R01000R02017VX520-260-449-958R03008QT520245R040086.2.0.05"/>
+ <Field Number="049"	Value="504"/>
+ <Field Number="052"	Value="5642B408CCBFE783"/>
+ <Field Number="053"	Value="0099000000"/>
+ <Field Number="055"	Value="820218008407A0000000032010950500000000009A031612289C01005F2A0205049F02060000000010009F03060000000000009F0902008C9F100706010A03A000009F1A02050457134260000000510013D30122011469629300000F9F26080108A82FEADC79DE9F2701809F3303E0F8C89F34031F00009F3501229F3602007E9F370472B1657C9F410430303031"/>
+ <Field Number="063"	Value="00000200100300000036387000005"/>
+ <Field Number="064"	Value="83CE84BB"/>
+ 
+ </MessageInfo>
+
+</BaseMessage>
