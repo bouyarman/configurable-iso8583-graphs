@@ -1,8 +1,6 @@
 package com.hps.simulator.metrics;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -18,7 +16,8 @@ public class MetricsCollector {
     private volatile long endTimeMillis;
 
     private final ConcurrentHashMap<Long, SecondMetricsBucket> timeline = new ConcurrentHashMap<Long, SecondMetricsBucket>();
-
+    private final Map<Long, List<TransactionResult>> transactionsBySecond =
+            new ConcurrentHashMap<>();
     public MetricsCollector() {
         this.startTimeMillis = System.currentTimeMillis();
         this.endTimeMillis = 0L;
@@ -44,6 +43,9 @@ public class MetricsCollector {
         long second = Math.max(0L, (result.getTimestamp() - startTimeMillis) / 1000L);
 
         timeline.computeIfAbsent(second, SecondMetricsBucket::new).record(result);
+        transactionsBySecond
+                .computeIfAbsent(second, k -> Collections.synchronizedList(new ArrayList<>()))
+                .add(result);
     }
 
     public void stop() {
@@ -65,7 +67,17 @@ public class MetricsCollector {
     public long getTimeoutCount() {
         return timeoutCount.get();
     }
+    public List<TransactionResult> getTransactionsBySecond(long second) {
+        List<TransactionResult> transactions = transactionsBySecond.get(second);
 
+        if (transactions == null) {
+            return Collections.emptyList();
+        }
+
+        synchronized (transactions) {
+            return new ArrayList<>(transactions);
+        }
+    }
     public double getAverageLatency() {
         long total = totalTransactions.get();
         if (total == 0) {

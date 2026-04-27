@@ -236,7 +236,26 @@
     </div>
 
 </div>
+<div class="card" id="transactionDetailsCard" style="display:none;">
+    <h2>Transactions for second <span id="selectedSecond">-</span></h2>
 
+    <table>
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Terminal ID</th>
+            <th>STAN</th>
+            <th>MTI</th>
+            <th>Status</th>
+            <th>Response Code</th>
+            <th>Client Latency (ms)</th>
+            <th>Server Latency</th>
+            <th>Timestamp</th>
+        </tr>
+        </thead>
+        <tbody id="transactionDetailsBody"></tbody>
+    </table>
+</div>
 <div class="card" id="liveMetricsCard" th:if="${simulationSession != null}">
     <h2>Live Simulation Metrics</h2>
 
@@ -491,8 +510,10 @@
             const second = params.value[0];
             const value = params.value[1];
 
-            document.getElementById("hoverInfo").innerText =
-                "TPS: " + Number(value).toFixed(2) + " at " + second + "s";
+            const hoverInfo = document.getElementById("hoverInfo");
+            if (hoverInfo) {
+                hoverInfo.innerText = "TPS: " + Number(value).toFixed(2) + " at " + second + "s";
+            }
 
             fetchTransactionsBySecond(second);
         });
@@ -518,7 +539,10 @@
 
             document.getElementById("hoverInfo").innerText =
                 params.seriesName + ": " + Number(value).toFixed(2) + " ms at " + second + "s";
-
+            const hoverInfo = document.getElementById("hoverInfo");
+            if (hoverInfo) {
+                hoverInfo.innerText = "Latency: " + Number(value).toFixed(2) + " at " + second + "s";
+            }
             fetchTransactionsBySecond(second);
         });
         latencyChart.on("datazoom", function () {
@@ -599,12 +623,10 @@
         fetch("/transactions?second=" + second)
             .then(response => response.json())
             .then(data => {
-                console.log("Transactions at second " + second + ":", data);
-                // later we show modal/table here
+                renderTransactionsTable(second, data);
             })
             .catch(error => console.error("Transaction fetch error:", error));
     }
-
     window.addEventListener("resize", function () {
         if (tpsChart) tpsChart.resize();
         if (latencyChart) latencyChart.resize();
@@ -749,7 +771,9 @@
         deltaTps.push(Number(delta.tps));
         deltaClientAvgLatency.push(Number(delta.clientAvgLatency));
         deltaClientP95Latency.push(Number(delta.clientP95Latency));
-        deltaServerAvgLatency.push(Number(delta.serverAvgLatency));
+        deltaServerAvgLatency.push(
+            delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency)
+        );
         deltaServerP95Latency.push(Number(delta.serverP95Latency));
         deltaActiveTerminals.push(Number(delta.activeTerminals));
     }
@@ -941,6 +965,46 @@
                 ignoreNextDataZoomEvent = false;
             }, 0);
         }
+    }
+    function renderTransactionsTable(second, transactions) {
+        const card = document.getElementById("transactionDetailsCard");
+        const selectedSecond = document.getElementById("selectedSecond");
+        const body = document.getElementById("transactionDetailsBody");
+
+        if (!card || !selectedSecond || !body) return;
+
+        selectedSecond.textContent = second;
+        body.innerHTML = "";
+
+        if (!transactions || transactions.length === 0) {
+            body.innerHTML = `
+            <tr>
+                <td colspan="7">No transactions found for this second.</td>
+            </tr>
+        `;
+            card.style.display = "block";
+            return;
+        }
+
+        transactions.forEach((tx, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${index+1}</td>
+            <td>${tx.terminalId || ""}</td>
+            <td>${tx.stan || ""}</td>
+            <td>${tx.mti || ""}</td>
+<td style="color:${tx.status === 'ERROR' ? 'red' : 'green'}">
+    ${tx.status}
+</td>            <td>${tx.responseCode || ""}</td>
+            <td>${tx.latencyMillis || 0}</td>
+            <td>${tx.serverLatencyMillis ?? "-"}</td>
+            <td>${new Date(tx.timestamp).toLocaleTimeString()}</td>
+        `;
+
+            body.appendChild(row);
+        });
+
+        card.style.display = "block";
     }
 </script>
 

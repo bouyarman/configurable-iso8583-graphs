@@ -1,19 +1,28 @@
 package com.hps.simulator.metrics;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerMetricsCollector {
 
     private long startTimeMillis = System.currentTimeMillis();
     private Long firstObservedSecond = null;
+    private final Map<String, Long> serverLatencyByStan = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<Long, ServerSecondMetricsBucket> timeline =
             new ConcurrentHashMap<Long, ServerSecondMetricsBucket>();
+    public void recordTransactionLatency(String stan, long latencyMillis) {
+        if (stan != null) {
+            serverLatencyByStan.put(stan, latencyMillis);
+        }
+    }
 
+    public Long getServerLatencyByStan(String stan) {
+        if (stan == null) {
+            return null;
+        }
+        return serverLatencyByStan.get(stan);
+    }
     private long toRawSecond(long timestampMillis) {
         return (timestampMillis - startTimeMillis) / 1000L;
     }
@@ -51,6 +60,7 @@ public class ServerMetricsCollector {
 
     public void reset() {
         timeline.clear();
+        serverLatencyByStan.clear();
         startTimeMillis = System.currentTimeMillis();
         firstObservedSecond = null;
     }

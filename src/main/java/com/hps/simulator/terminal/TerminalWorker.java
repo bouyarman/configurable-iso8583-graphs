@@ -2,6 +2,7 @@ package com.hps.simulator.terminal;
 
 import com.hps.simulator.UI.SimulationRequest;
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.metrics.ServerMetricsCollector;
 import com.hps.simulator.metrics.TransactionResult;
 import com.hps.simulator.metrics.TransactionStatus;
 import com.hps.simulator.network.BinaryIsoTcpClient;
@@ -25,6 +26,8 @@ public class TerminalWorker implements Runnable {
     private final int terminalIndex;
     private final int totalTerminals;
 
+    private final ServerMetricsCollector serverMetricsCollector;
+
     public TerminalWorker(VirtualTerminal terminal,
                           MetricsCollector metricsCollector,
                           BinaryIsoTcpClient client,
@@ -32,7 +35,8 @@ public class TerminalWorker implements Runnable {
                           long simulationStartMillis,
                           SimulationRequest request,
                           int terminalIndex,
-                          int totalTerminals) {
+                          int totalTerminals,
+                          ServerMetricsCollector serverMetricsCollector) {
         this.terminal = terminal;
         this.metricsCollector = metricsCollector;
         this.client = client;
@@ -42,6 +46,7 @@ public class TerminalWorker implements Runnable {
         this.request = request;
         this.terminalIndex = terminalIndex;
         this.totalTerminals = totalTerminals;
+        this.serverMetricsCollector = serverMetricsCollector;
     }
 
     @Override
@@ -79,7 +84,19 @@ public class TerminalWorker implements Runnable {
                     latency,
                     start
             );
+            String stan = requestMessage.getField(11);
+            Long serverLatency = null;
 
+            for (int i = 0; i < 3; i++) {
+                serverLatency = serverMetricsCollector.getServerLatencyByStan(stan);
+                if (serverLatency != null) break;
+
+                try {
+                    Thread.sleep(2); // very small wait
+                } catch (InterruptedException ignored) {}
+            }
+
+            result.setServerLatencyMillis(serverLatency);
             metricsCollector.recordTransactionResult(result);
 
         } catch (Exception e) {

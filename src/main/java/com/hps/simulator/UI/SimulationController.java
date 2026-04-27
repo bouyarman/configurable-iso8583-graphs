@@ -3,10 +3,7 @@ package com.hps.simulator.UI;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.iso.XmlIsoMessageLoader;
 import com.hps.simulator.logging.RunManager;
-import com.hps.simulator.metrics.MetricsCollector;
-import com.hps.simulator.metrics.SecondMetricsPoint;
-import com.hps.simulator.metrics.ServerMetricsCollector;
-import com.hps.simulator.metrics.ServerSecondMetricsBucket;
+import com.hps.simulator.metrics.*;
 import com.hps.simulator.network.BinaryTcpTestSwitchServer;
 import com.hps.simulator.profile.TerminalProfile;
 import com.hps.simulator.profile.TerminalProfileLoader;
@@ -16,10 +13,9 @@ import com.hps.simulator.session.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @Controller
@@ -29,6 +25,7 @@ public class SimulationController {
     private final SimulationSessionStore sessionStore;
     private final ServerMetricsCollector serverMetricsCollector;
     private final SimulationRunner simulationRunner;
+    private MetricsCollector currentMetricsCollector;
 
     @Value("${simulator.protocol.path}")
     private String protocolPath;
@@ -220,12 +217,10 @@ public class SimulationController {
             }
         }
 
-        // IMPORTANT: use the dynamic runSimulation overload
-        MetricsCollector metrics = simulationRunner.runSimulation(
-                session,
+
+        currentMetricsCollector = simulationRunner.runSimulation(session,
                 request,
-                protocol
-        );
+                protocol);
         System.out.println("===== SERVER TIMELINE =====");
         for (ServerSecondMetricsBucket bucket : serverMetricsCollector.getTimeline()) {
             System.out.println(
@@ -236,7 +231,7 @@ public class SimulationController {
             );
         }
         System.out.println("===== CLIENT TIMELINE =====");
-        for (SecondMetricsPoint point : metrics.getTimelinePoints()) {
+        for (SecondMetricsPoint point : currentMetricsCollector.getTimelinePoints()) {
             System.out.println(
                     "CLIENT second=" + point.getSecond()
                             + ", total=" + point.getTotal()
@@ -247,16 +242,16 @@ public class SimulationController {
             );
         }
         System.out.println("===== LATENCY CHECK =====");
-        System.out.println("GLOBAL AVG LATENCY = " + metrics.getAverageLatency());
-        System.out.println("TIMELINE WEIGHTED AVG LATENCY = " + metrics.getAverageLatencyFromTimelineWeighted());
+        System.out.println("GLOBAL AVG LATENCY = " + currentMetricsCollector.getAverageLatency());
+        System.out.println("TIMELINE WEIGHTED AVG LATENCY = " + currentMetricsCollector.getAverageLatencyFromTimelineWeighted());
 
         SimulationResultView result = new SimulationResultView(
-                metrics.getTotalTransactions(),
-                metrics.getSuccessCount(),
-                metrics.getErrorCount(),
-                metrics.getTimeoutCount(),
-                metrics.getGlobalTps(),
-                metrics.getAverageLatency()
+                currentMetricsCollector.getTotalTransactions(),
+                currentMetricsCollector.getSuccessCount(),
+                currentMetricsCollector.getErrorCount(),
+                currentMetricsCollector.getTimeoutCount(),
+                currentMetricsCollector.getGlobalTps(),
+                currentMetricsCollector.getAverageLatency()
         );
 
         model.addAttribute("result", result);
@@ -274,5 +269,13 @@ public class SimulationController {
         return "index";
     }
 
+    @GetMapping("/transactions")
+    @ResponseBody
+    public List<TransactionResult> getTransactionsBySecond(@RequestParam long second) {
+        if (currentMetricsCollector == null) {
+            return Collections.emptyList();
+        }
 
+        return currentMetricsCollector.getTransactionsBySecond(second);
+    }
 }

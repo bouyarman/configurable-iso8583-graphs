@@ -8,6 +8,7 @@ public class TransactionResult {
     private final TransactionStatus status;
     private final String responseCode;
     private final long latencyMillis;
+    private Long serverLatencyMillis;
     private final long timestamp;
 
     public TransactionResult(String terminalId,
@@ -52,5 +53,12 @@ public class TransactionResult {
 
     public long getTimestamp() {
         return timestamp;
+    }
+    public Long getServerLatencyMillis() {
+        return serverLatencyMillis;
+    }
+
+    public void setServerLatencyMillis(Long serverLatencyMillis) {
+        this.serverLatencyMillis = serverLatencyMillis;
     }
 }

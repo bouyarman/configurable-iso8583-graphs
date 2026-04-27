@@ -89,7 +89,8 @@ public class SimulationRunner {
                             simulationStartMillis,
                             request,
                             connectedSession.getTerminalIndex(),
-                            totalTerminals
+                            totalTerminals,
+                            serverMetricsCollector
                     ),
                     0,
                     periodMillis,
@@ -273,8 +274,7 @@ public class SimulationRunner {
         snapshot.setActiveTerminals(currentActiveTerminals);
         snapshot.setActiveTerminalTime(activeTerminalTime);
         snapshot.setActiveTerminalsTimeline(activeTerminalList);
-        System.out.println("ACTIVE TIME: " + activeTerminalTime);
-        System.out.println("ACTIVE LIST: " + activeTerminalList);
+
         snapshot.setRunning(running);
 
 
@@ -387,14 +387,21 @@ public class SimulationRunner {
 
         delta.setRunning(running);
 
-        ServerSecondMetricsBucket lastServerBucket =
-                serverMetricsCollector.getTimeline().isEmpty()
-                        ? null
-                        : serverMetricsCollector.getTimeline().get(serverMetricsCollector.getTimeline().size() - 1);
+        ServerSecondMetricsBucket matchingServerBucket = null;
 
-        if (lastServerBucket != null) {
-            delta.setServerAvgLatency(lastServerBucket.getAverageLatency());
-            delta.setServerP95Latency(lastServerBucket.getP95Latency());
+        for (ServerSecondMetricsBucket bucket : serverMetricsCollector.getTimeline()) {
+            if (bucket.getSecond() == second) {
+                matchingServerBucket = bucket;
+                break;
+            }
+        }
+
+        if (matchingServerBucket != null) {
+            delta.setServerAvgLatency(matchingServerBucket.getAverageLatency());
+            delta.setServerP95Latency(matchingServerBucket.getP95Latency());
+        } else {
+            delta.setServerAvgLatency(null);
+            delta.setServerP95Latency(null);
         }
 
         return delta;
