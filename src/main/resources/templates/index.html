@@ -65,6 +65,21 @@
             color: red;
             font-weight: bold;
         }
+        .charts-grid {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chart-box {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .chart-box canvas {
+            height: 300px !important;
+        }
+
     </style>
 </head>
 <body>
@@ -170,12 +185,79 @@
         </table>
     </div>
 
-    <form method="get" action="/simulate">
-        <button type="submit" th:disabled="${simulationSession.connectedCount == 0}">Simuler</button>
-    </form>
+    <button type="button"
+            onclick="startSimulation()"
+            th:disabled="${simulationSession.connectedCount == 0}">
+        Simuler
+    </button>
+
+    <p id="simulationMessage"></p>
 
     <p th:if="${message != null}" th:text="${message}"></p>
 </div>
+
+<div class="card" th:if="${simulationSession != null}">
+
+    <div class="charts-grid">
+        <div class="chart-box">
+
+            <button type="button" onclick="followLatestCharts()">Follow latest 45s</button>
+            <h3>TPS Over Time</h3>
+            <div id="tpsChart" style="height:300px;"></div>
+        </div>
+
+        <div class="chart-box">
+            <button type="button" onclick="followLatestCharts()">Follow latest 45s</button>
+            <h3>Latency Over Time (ms)</h3>
+            <div id="latencyChart" style="height:300px;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card" id="liveMetricsCard" th:if="${simulationSession != null}">
+    <h2>Live Simulation Metrics</h2>
+
+    <p>Status :
+        <strong id="liveStatus" class="bad">STOPPED</strong>
+    </p>
+
+    <p>Total transactions :
+        <strong id="liveTotal">0</strong>
+    </p>
+
+    <p>Succès :
+        <strong id="liveSuccess" class="ok">0</strong>
+    </p>
+
+    <p>Erreurs :
+        <strong id="liveError" class="bad">0</strong>
+    </p>
+
+    <p>Timeout :
+        <strong id="liveTimeout" class="bad">0</strong>
+    </p>
+
+    <p>Current TPS :
+        <strong id="liveTps">0</strong>
+    </p>
+
+    <p>Average latency :
+        <strong id="liveAvgLatency">0</strong> ms
+    </p>
+
+    <p>Success rate :
+        <strong id="liveSuccessRate">0</strong> %
+    </p>
+
+    <p>Connected terminals :
+        <strong id="liveConnectedTerminals">0</strong>
+    </p>
+
+    <p>Active terminals :
+        <strong id="liveActiveTerminals">0</strong>
+    </p>
+</div>
+
 <div class="card" th:if="${result != null}">
     <h2>Résultat de simulation</h2>
 
@@ -187,7 +269,14 @@
     <p>TPS global : <strong th:text="${result.tps}"></strong></p>
     <p>Latence moyenne (ms) : <strong th:text="${result.avgLatency}"></strong></p>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script>
+    const DEFAULT_VISIBLE_SECONDS = 45;
+    let autoFollowLatest = true;
+
     function toggleRampUpFields() {
         const testMode = document.getElementById("testMode").value;
         const rampUpFields = document.getElementById("rampUpFields");
@@ -200,7 +289,13 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        initTpsChart();
+        initLatencyChart();
+        connectLiveMetricsWebSocket();
+
+        toggleTestModeOptions();
         toggleRampUpFields();
+        toggleSequentialOptions();
     });
 
     const launchSelect = document.getElementById("launchStrategy");
@@ -214,10 +309,7 @@
         }
     }
 
-    // Initial check (important when page reloads)
     toggleSequentialOptions();
-
-    // Listen for changes
     launchSelect.addEventListener("change", toggleSequentialOptions);
 
     const testModeSelect = document.getElementById("testMode");
@@ -240,11 +332,338 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        toggleTestModeOptions();
+    testModeSelect.addEventListener("change", toggleTestModeOptions);
+
+    let stompClient = null;
+    let ignoreNextDataZoomEvent = false;
+    let lastMinSecond = null;
+    let lastLatestSecond = null;
+
+
+    function connectLiveMetricsWebSocket() {
+        const socket = new SockJS('/ws-simulation');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function () {
+            console.log("Connected to live metrics WebSocket");
+
+            stompClient.subscribe('/topic/live-metrics', function (message) {
+                const snapshot = JSON.parse(message.body);
+                updateLiveMetrics(snapshot);
+            });
+        }, function (error) {
+            console.error("WebSocket connection error", error);
+        });
+    }
+
+    function updateLiveMetrics(snapshot) {
+        setText("liveTotal", snapshot.totalTransactions);
+        setText("liveSuccess", snapshot.successTransactions);
+        setText("liveError", snapshot.errorTransactions);
+        setText("liveTimeout", snapshot.timeoutTransactions);
+
+        setText("liveTps", Number(snapshot.currentTps).toFixed(2));
+        setText("liveAvgLatency", Number(snapshot.averageLatencyMs).toFixed(2));
+        setText("liveSuccessRate", Number(snapshot.successRate).toFixed(2));
+
+        setText("liveConnectedTerminals", snapshot.connectedTerminals);
+        setText("liveActiveTerminals", snapshot.activeTerminals);
+
+        const statusElement = document.getElementById("liveStatus");
+
+        if (statusElement) {
+            if (snapshot.running) {
+                statusElement.textContent = "RUNNING";
+                statusElement.className = "ok";
+            } else {
+                statusElement.textContent = "STOPPED";
+                statusElement.className = "bad";
+            }
+        }
+        updateTpsChart(snapshot);
+        updateLatencyChart(snapshot);
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    function startSimulation() {
+        const messageElement = document.getElementById("simulationMessage");
+
+        if (messageElement) {
+            messageElement.textContent = "Simulation running...";
+        }
+
+        fetch("/simulate", {
+            method: "GET"
+        })
+            .then(response => response.text())
+            .then(() => {
+                if (messageElement) {
+                    messageElement.textContent = "Simulation finished.";
+                }
+            })
+            .catch(error => {
+                console.error("Simulation error:", error);
+
+                if (messageElement) {
+                    messageElement.textContent = "Simulation error.";
+                }
+            });
+    }
+
+    let tpsChart = null;
+    let latencyChart = null;
+
+    function initTpsChart() {
+        const element = document.getElementById("tpsChart");
+        if (!element) return;
+
+        tpsChart = echarts.init(element);
+
+        tpsChart.setOption(createLineChartOption("TPS", "TPS"));
+
+        tpsChart.on("click", function (params) {
+            if (!params.value) return;
+
+            const second = params.value[0];
+            const value = params.value[1];
+
+            document.getElementById("hoverInfo").innerText =
+                "TPS: " + Number(value).toFixed(2) + " at " + second + "s";
+
+            fetchTransactionsBySecond(second);
+        });
+        tpsChart.on("datazoom", function () {
+            if (ignoreNextDataZoomEvent) return;
+            autoFollowLatest = false;
+        });
+    }
+
+    function initLatencyChart() {
+        const element = document.getElementById("latencyChart");
+        if (!element) return;
+
+        latencyChart = echarts.init(element);
+
+        latencyChart.setOption(createLineChartOption("Latency", "Latency ms"));
+
+        latencyChart.on("click", function (params) {
+            if (!params.value) return;
+
+            const second = params.value[0];
+            const value = params.value[1];
+
+            document.getElementById("hoverInfo").innerText =
+                params.seriesName + ": " + Number(value).toFixed(2) + " ms at " + second + "s";
+
+            fetchTransactionsBySecond(second);
+        });
+        latencyChart.on("datazoom", function () {
+            if (ignoreNextDataZoomEvent) return;
+            autoFollowLatest = false;
+        });
+    }
+
+    function createLineChartOption(title, yName) {
+        return {
+            animation: false,
+            tooltip: {
+                trigger: "item",
+                formatter: function (params) {
+                    return params.seriesName + ": " + Number(params.value[1]).toFixed(2);
+                }
+            },
+            grid: {
+                left: 50,
+                right: 25,
+                top: 30,
+                bottom: 55
+            },
+            xAxis: {
+                type: "value",
+                name: "Seconds",
+                boundaryGap: false
+            },
+            yAxis: {
+                type: "value",
+                name: yName,
+                min: 0
+            },
+            dataZoom: [
+                {
+                    type: "inside",
+                    xAxisIndex: 0,
+                    zoomOnMouseWheel: true,
+                    moveOnMouseMove: true,
+                    moveOnMouseWheel: false
+                },
+                {
+                    type: "slider",
+                    xAxisIndex: 0,
+                    height: 20,
+                    bottom: 20
+                }
+            ],
+            series: []
+        };
+    }
+
+    function updateTpsChart(snapshot) {
+        if (!tpsChart || !snapshot.time || !snapshot.tpsTimeline) return;
+
+        const data = snapshot.time.map((second, index) => [
+            Number(second),
+            Number(snapshot.tpsTimeline[index])
+        ]);
+
+        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+
+
+        lastMinSecond = minSecond;
+        lastLatestSecond = latestSecond;
+
+        if (autoFollowLatest) {
+            tpsChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+        }
+
+        tpsChart.setOption({
+            series: [{
+                name: "TPS",
+                type: "line",
+                data: data,
+                symbol: "circle",
+                symbolSize: 10,
+                showSymbol: true,
+                smooth: 0.2,
+                clip: false
+            }]
+        });
+
+        if (autoFollowLatest) {
+            tpsChart.dispatchAction({
+                type: "dataZoom",
+                startValue: displayMinSecond,
+                endValue: displayMaxSecond
+            });
+        }
+    }
+    function updateLatencyChart(snapshot) {
+        if (!latencyChart || !snapshot.time || !snapshot.latencyTimeline) return;
+
+        const avgData = snapshot.time.map((second, index) => [
+            Number(second),
+            Number(snapshot.latencyTimeline[index])
+        ]);
+
+        const p95Data = snapshot.time.map((second, index) => [
+            Number(second),
+            Number(snapshot.latencyTimeline[index]) * 1.2
+        ]);
+
+        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        lastMinSecond = minSecond;
+        lastLatestSecond = latestSecond;
+
+        if (autoFollowLatest) {
+            latencyChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+        }
+
+        latencyChart.setOption({
+            series: [
+                {
+                    name: "Avg Latency",
+                    type: "line",
+                    data: avgData,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    clip: false
+
+                },
+                {
+                    name: "P95 Latency",
+                    type: "line",
+                    data: p95Data,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    lineStyle: { type: "dashed" },
+                    clip: false
+
+                }
+            ]
+        });
+
+        if (autoFollowLatest) {
+            latencyChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+        }
+    }
+    function followLatestCharts() {
+        autoFollowLatest = true;
+
+        ignoreNextDataZoomEvent = true;
+
+        if (tpsChart && lastMinSecond !== null && lastLatestSecond !== null) {
+            tpsChart.dispatchAction({
+                type: "dataZoom",
+                startValue: lastMinSecond,
+                endValue: lastLatestSecond
+            });
+        }
+
+        if (latencyChart && lastMinSecond !== null && lastLatestSecond !== null) {
+            latencyChart.dispatchAction({
+                type: "dataZoom",
+                startValue: lastMinSecond,
+                endValue: lastLatestSecond
+            });
+        }
+
+        setTimeout(function () {
+            ignoreNextDataZoomEvent = false;
+        }, 100);
+    }
+    function fetchTransactionsBySecond(second) {
+        fetch("/transactions?second=" + second)
+            .then(response => response.json())
+            .then(data => {
+                console.log("Transactions at second " + second + ":", data);
+                // later we show modal/table here
+            })
+            .catch(error => console.error("Transaction fetch error:", error));
+    }
+
+    window.addEventListener("resize", function () {
+        if (tpsChart) tpsChart.resize();
+        if (latencyChart) latencyChart.resize();
     });
 
-    testModeSelect.addEventListener("change", toggleTestModeOptions);
+
+
 </script>
 
 </body>

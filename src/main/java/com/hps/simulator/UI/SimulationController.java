@@ -28,6 +28,7 @@ public class SimulationController {
     private final ConnectionService connectionService;
     private final SimulationSessionStore sessionStore;
     private final ServerMetricsCollector serverMetricsCollector;
+    private final SimulationRunner simulationRunner;
 
     @Value("${simulator.protocol.path}")
     private String protocolPath;
@@ -44,11 +45,13 @@ public class SimulationController {
 
     public SimulationController(ConnectionService connectionService,
                                 SimulationSessionStore sessionStore,
-                                ServerMetricsCollector serverMetricsCollector
+                                ServerMetricsCollector serverMetricsCollector,
+                                SimulationRunner simulationRunner
                                 ) {
         this.connectionService = connectionService;
         this.sessionStore = sessionStore;
         this.serverMetricsCollector = serverMetricsCollector;
+        this.simulationRunner = simulationRunner;
 
     }
 
@@ -216,10 +219,9 @@ public class SimulationController {
                 return "index";
             }
         }
-        SimulationRunner runner = new SimulationRunner();
 
         // IMPORTANT: use the dynamic runSimulation overload
-        MetricsCollector metrics = runner.runSimulation(
+        MetricsCollector metrics = simulationRunner.runSimulation(
                 session,
                 request,
                 protocol
