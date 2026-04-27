@@ -21,10 +21,19 @@ public class LiveMetricsSnapshot {
     private int connectedTerminals;
     private int activeTerminals;
 
+    private List<Long> activeTerminalTime;
+    private List<Double> activeTerminalsTimeline;
 
+    // this is for client (terminaux)
     private List<Long> time;
     private List<Double> tpsTimeline;
     private List<Double> latencyTimeline;
+    private List<Double> p95LatencyTimeline;
+
+   // w hadi for server (Switch)
+    private List<Long> serverTime;
+    private List<Double> serverLatencyTimeline;
+    private List<Double> serverP95LatencyTimeline;
 
     public List<Double> getTpsTimeline() {
         return tpsTimeline;
@@ -159,5 +168,53 @@ public class LiveMetricsSnapshot {
         this.running = running;
     }
 
+    public List<Double> getP95LatencyTimeline() {
+        return p95LatencyTimeline;
+    }
+
+    public void setP95LatencyTimeline(List<Double> p95LatencyTimeline) {
+        this.p95LatencyTimeline = p95LatencyTimeline;
+    }
+
+
+    public List<Long> getServerTime() {
+        return serverTime;
+    }
+
+    public void setServerTime(List<Long> serverTime) {
+        this.serverTime = serverTime;
+    }
+
+    public List<Double> getServerLatencyTimeline() {
+        return serverLatencyTimeline;
+    }
+
+    public void setServerLatencyTimeline(List<Double> serverLatencyTimeline) {
+        this.serverLatencyTimeline = serverLatencyTimeline;
+    }
+
+    public List<Double> getServerP95LatencyTimeline() {
+        return serverP95LatencyTimeline;
+    }
+
+    public void setServerP95LatencyTimeline(List<Double> serverP95LatencyTimeline) {
+        this.serverP95LatencyTimeline = serverP95LatencyTimeline;
+    }
+
+    public List<Long> getActiveTerminalTime() {
+        return activeTerminalTime;
+    }
+
+    public void setActiveTerminalTime(List<Long> activeTerminalTime) {
+        this.activeTerminalTime = activeTerminalTime;
+    }
+
+    public List<Double> getActiveTerminalsTimeline() {
+        return activeTerminalsTimeline;
+    }
+
+    public void setActiveTerminalsTimeline(List<Double> activeTerminalsTimeline) {
+        this.activeTerminalsTimeline = activeTerminalsTimeline;
+    }
 
 }

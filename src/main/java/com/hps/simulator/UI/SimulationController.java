@@ -246,7 +246,9 @@ public class SimulationController {
                             + ", avgLatency=" + point.getAverageLatency()
             );
         }
-
+        System.out.println("===== LATENCY CHECK =====");
+        System.out.println("GLOBAL AVG LATENCY = " + metrics.getAverageLatency());
+        System.out.println("TIMELINE WEIGHTED AVG LATENCY = " + metrics.getAverageLatencyFromTimelineWeighted());
 
         SimulationResultView result = new SimulationResultView(
                 metrics.getTotalTransactions(),
@@ -271,4 +273,6 @@ public class SimulationController {
         model.addAttribute("message", modeLabel + " simulation completed.");
         return "index";
     }
+
+
 }

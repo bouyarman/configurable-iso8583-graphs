@@ -8,19 +8,22 @@ public class SecondMetricsPoint {
     private final long error;
     private final long timeout;
     private final double averageLatency;
+    private final double p95Latency;
 
     public SecondMetricsPoint(long second,
                               long total,
                               long success,
                               long error,
                               long timeout,
-                              double averageLatency) {
+                              double averageLatency,
+                              double p95Latency) {
         this.second = second;
         this.total = total;
         this.success = success;
         this.error = error;
         this.timeout = timeout;
         this.averageLatency = averageLatency;
+        this.p95Latency = p95Latency;
     }
 
     public long getSecond() {
@@ -45,5 +48,9 @@ public class SecondMetricsPoint {
 
     public double getAverageLatency() {
         return averageLatency;
+    }
+
+    public double getP95Latency() {
+        return p95Latency;
     }
 }

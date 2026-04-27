@@ -201,17 +201,40 @@
     <div class="charts-grid">
         <div class="chart-box">
 
-            <button type="button" onclick="followLatestCharts()">Follow latest 45s</button>
+            <button type="button" onclick="followLatestTps()">Go Live</button>
             <h3>TPS Over Time</h3>
             <div id="tpsChart" style="height:300px;"></div>
         </div>
+        <div class="chart-box">
+            <button type="button" onclick="followLatestActiveTerminals()">Go Live</button>
+            <h3>Active Terminals Over Time</h3>
+            <div id="activeTerminalsChart" style="height:300px;"></div>
+        </div>
+
+
+    </div>
+    <div class="charts-grid">
 
         <div class="chart-box">
-            <button type="button" onclick="followLatestCharts()">Follow latest 45s</button>
+            <button type="button" onclick="followLatestServerLatency()">Go Live</button>
+            <h3>Server Latency Over Time (ms)</h3>
+            <div id="serverLatencyChart" style="height:300px;"></div>
+        </div>
+        <div class="chart-box">
+            <button type="button" onclick="followLatestClientLatency()">Go Live</button>
             <h3>Latency Over Time (ms)</h3>
             <div id="latencyChart" style="height:300px;"></div>
         </div>
+
     </div>
+    <div class="charts-grid">
+
+    <div class="chart-box">
+        <h3>Outcome Breakdown</h3>
+        <div id="outcomeDonutChart" style="height:300px;"></div>
+    </div>
+    </div>
+
 </div>
 
 <div class="card" id="liveMetricsCard" th:if="${simulationSession != null}">
@@ -274,8 +297,32 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script>
+
+
     const DEFAULT_VISIBLE_SECONDS = 45;
-    let autoFollowLatest = true;
+
+    let autoFollowTps = true;
+    let autoFollowClientLatency = true;
+    let autoFollowServerLatency = true;
+    let activeLastMinSecond = null;
+    let activeLastLatestSecond = null;
+
+    let serverLatencyChart = null;
+    let outcomeDonutChart = null;
+
+    let activeTerminalsChart = null;
+    let autoFollowActiveTerminals = true;
+
+    let deltaTime = [];
+    let deltaTps = [];
+
+    let deltaClientAvgLatency = [];
+    let deltaClientP95Latency = [];
+
+    let deltaServerAvgLatency = [];
+    let deltaServerP95Latency = [];
+
+    let deltaActiveTerminals = [];
 
     function toggleRampUpFields() {
         const testMode = document.getElementById("testMode").value;
@@ -296,6 +343,11 @@
         toggleTestModeOptions();
         toggleRampUpFields();
         toggleSequentialOptions();
+
+        initServerLatencyChart();
+
+        initOutcomeDonutChart();
+        initActiveTerminalsChart();
     });
 
     const launchSelect = document.getElementById("launchStrategy");
@@ -349,14 +401,19 @@
 
             stompClient.subscribe('/topic/live-metrics', function (message) {
                 const snapshot = JSON.parse(message.body);
-                updateLiveMetrics(snapshot);
+                updateSnapshotKPI(snapshot);
             });
+            stompClient.subscribe('/topic/live-metrics-delta', function (message) {
+                const delta = JSON.parse(message.body);
+                updateRealtimeMetrics(delta);
+            });
+
         }, function (error) {
             console.error("WebSocket connection error", error);
         });
     }
 
-    function updateLiveMetrics(snapshot) {
+    function updateSnapshotKPI(snapshot) {
         setText("liveTotal", snapshot.totalTransactions);
         setText("liveSuccess", snapshot.successTransactions);
         setText("liveError", snapshot.errorTransactions);
@@ -380,8 +437,8 @@
                 statusElement.className = "bad";
             }
         }
-        updateTpsChart(snapshot);
-        updateLatencyChart(snapshot);
+        updateOutcomeDonutChart(snapshot);
+
     }
 
     function setText(id, value) {
@@ -441,7 +498,7 @@
         });
         tpsChart.on("datazoom", function () {
             if (ignoreNextDataZoomEvent) return;
-            autoFollowLatest = false;
+            autoFollowTps = false;
         });
     }
 
@@ -466,7 +523,7 @@
         });
         latencyChart.on("datazoom", function () {
             if (ignoreNextDataZoomEvent) return;
-            autoFollowLatest = false;
+            autoFollowClientLatency = false;
         });
     }
 
@@ -514,138 +571,29 @@
         };
     }
 
-    function updateTpsChart(snapshot) {
-        if (!tpsChart || !snapshot.time || !snapshot.tpsTimeline) return;
-
-        const data = snapshot.time.map((second, index) => [
-            Number(second),
-            Number(snapshot.tpsTimeline[index])
-        ]);
-
-        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-
-
-        lastMinSecond = minSecond;
-        lastLatestSecond = latestSecond;
-
-        if (autoFollowLatest) {
-            tpsChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-        }
-
-        tpsChart.setOption({
-            series: [{
-                name: "TPS",
-                type: "line",
-                data: data,
-                symbol: "circle",
-                symbolSize: 10,
-                showSymbol: true,
-                smooth: 0.2,
-                clip: false
-            }]
-        });
-
-        if (autoFollowLatest) {
-            tpsChart.dispatchAction({
-                type: "dataZoom",
-                startValue: displayMinSecond,
-                endValue: displayMaxSecond
-            });
-        }
+    function followLatestTps() {
+        autoFollowTps = true;
+        followLatestChart(tpsChart);
     }
-    function updateLatencyChart(snapshot) {
-        if (!latencyChart || !snapshot.time || !snapshot.latencyTimeline) return;
 
-        const avgData = snapshot.time.map((second, index) => [
-            Number(second),
-            Number(snapshot.latencyTimeline[index])
-        ]);
-
-        const p95Data = snapshot.time.map((second, index) => [
-            Number(second),
-            Number(snapshot.latencyTimeline[index]) * 1.2
-        ]);
-
-        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-        lastMinSecond = minSecond;
-        lastLatestSecond = latestSecond;
-
-        if (autoFollowLatest) {
-            latencyChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-        }
-
-        latencyChart.setOption({
-            series: [
-                {
-                    name: "Avg Latency",
-                    type: "line",
-                    data: avgData,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    clip: false
-
-                },
-                {
-                    name: "P95 Latency",
-                    type: "line",
-                    data: p95Data,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    lineStyle: { type: "dashed" },
-                    clip: false
-
-                }
-            ]
-        });
-
-        if (autoFollowLatest) {
-            latencyChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-        }
+    function followLatestClientLatency() {
+        autoFollowClientLatency = true;
+        followLatestChart(latencyChart);
     }
-    function followLatestCharts() {
-        autoFollowLatest = true;
 
-        ignoreNextDataZoomEvent = true;
+    function followLatestServerLatency() {
+        autoFollowServerLatency = true;
+        followLatestChart(serverLatencyChart);
+    }
 
-        if (tpsChart && lastMinSecond !== null && lastLatestSecond !== null) {
-            tpsChart.dispatchAction({
-                type: "dataZoom",
-                startValue: lastMinSecond,
-                endValue: lastLatestSecond
-            });
-        }
+    function followLatestChart(chart) {
+        if (!chart || lastMinSecond === null || lastLatestSecond === null) return;
 
-        if (latencyChart && lastMinSecond !== null && lastLatestSecond !== null) {
-            latencyChart.dispatchAction({
-                type: "dataZoom",
-                startValue: lastMinSecond,
-                endValue: lastLatestSecond
-            });
-        }
-
-        setTimeout(function () {
-            ignoreNextDataZoomEvent = false;
-        }, 100);
+        chart.dispatchAction({
+            type: "dataZoom",
+            startValue: lastMinSecond,
+            endValue: lastLatestSecond
+        });
     }
     function fetchTransactionsBySecond(second) {
         fetch("/transactions?second=" + second)
@@ -660,10 +608,340 @@
     window.addEventListener("resize", function () {
         if (tpsChart) tpsChart.resize();
         if (latencyChart) latencyChart.resize();
+        if (serverLatencyChart) serverLatencyChart.resize();
+        if (outcomeDonutChart) outcomeDonutChart.resize();
+        if (activeTerminalsChart) activeTerminalsChart.resize();
     });
 
+    function initServerLatencyChart() {
+        const element = document.getElementById("serverLatencyChart");
+        if (!element) return;
 
+        serverLatencyChart = echarts.init(element);
+        serverLatencyChart.setOption(createLineChartOption("Server Latency", "Latency ms"));
 
+        serverLatencyChart.on("datazoom", function () {
+            if (ignoreNextDataZoomEvent) return;
+            autoFollowServerLatency = false;
+        });
+    }
+
+    function initOutcomeDonutChart() {
+        const element = document.getElementById("outcomeDonutChart");
+        if (!element) return;
+
+        outcomeDonutChart = echarts.init(element);
+
+        outcomeDonutChart.setOption({
+            tooltip: {
+                trigger: "item",
+                formatter: "{b}: {c} ({d}%)"
+            },
+            legend: {
+                bottom: 0
+            },
+            series: [
+                {
+                    name: "Outcome",
+                    type: "pie",
+                    radius: ["45%", "70%"],
+                    avoidLabelOverlap: true,
+                    label: {
+                        formatter: "{b}\n{d}%"
+                    },
+                    data: [
+                        { value: 0, name: "Success" },
+                        { value: 0, name: "Error" },
+                        { value: 0, name: "Timeout" }
+                    ]
+                }
+            ]
+        });
+    }
+    function updateOutcomeDonutChart(snapshot) {
+        if (!outcomeDonutChart) return;
+
+        const success = Number(snapshot.successTransactions || 0);
+        const error = Number(snapshot.errorTransactions || 0);
+        const timeout = Number(snapshot.timeoutTransactions || 0);
+
+        outcomeDonutChart.setOption({
+            series: [
+                {
+                    data: [
+                        { value: success, name: "Success" },
+                        { value: error, name: "Error" },
+                        { value: timeout, name: "Timeout" }
+                    ]
+                }
+            ]
+        });
+    }
+    function initActiveTerminalsChart() {
+        const element = document.getElementById("activeTerminalsChart");
+        if (!element) return;
+
+        activeTerminalsChart = echarts.init(element);
+        activeTerminalsChart.setOption(createLineChartOption("Active Terminals", "Terminals"));
+
+        activeTerminalsChart.on("datazoom", function () {
+            if (ignoreNextDataZoomEvent) return;
+            autoFollowActiveTerminals = false;
+        });
+    }
+    function followLatestActiveTerminals() {
+        autoFollowActiveTerminals = true;
+
+        if (!activeTerminalsChart || activeLastMinSecond === null || activeLastLatestSecond === null) return;
+
+        activeTerminalsChart.dispatchAction({
+            type: "dataZoom",
+            startValue: activeLastMinSecond,
+            endValue: activeLastLatestSecond
+        });
+    }
+    function updateRealtimeMetrics(delta) {
+        setText("liveTotal", delta.totalTransactions);
+        setText("liveSuccess", delta.successTransactions);
+        setText("liveError", delta.errorTransactions);
+        setText("liveTimeout", delta.timeoutTransactions);
+
+        setText("liveTps", Number(delta.tps).toFixed(2));
+        setText("liveAvgLatency", Number(delta.clientAvgLatency).toFixed(2));
+        setText("liveSuccessRate", Number(delta.successRate).toFixed(2));
+        setText("liveActiveTerminals", delta.activeTerminals);
+
+        const statusElement = document.getElementById("liveStatus");
+        if (statusElement) {
+            if (delta.running) {
+                statusElement.textContent = "RUNNING";
+                statusElement.className = "ok";
+            } else {
+                statusElement.textContent = "STOPPED";
+                statusElement.className = "bad";
+            }
+        }
+
+        appendDeltaPoint(delta);
+        updateChartsFromDelta();
+
+        updateOutcomeDonutChart({
+            successTransactions: delta.successTransactions,
+            errorTransactions: delta.errorTransactions,
+            timeoutTransactions: delta.timeoutTransactions
+        });
+    }
+    function appendDeltaPoint(delta) {
+        const second = Number(delta.second);
+
+        // avoid duplicate seconds
+        if (deltaTime.length > 0 && deltaTime[deltaTime.length - 1] === second) {
+            deltaTps[deltaTps.length - 1] = Number(delta.tps);
+            deltaClientAvgLatency[deltaClientAvgLatency.length - 1] = Number(delta.clientAvgLatency);
+            deltaClientP95Latency[deltaClientP95Latency.length - 1] = Number(delta.clientP95Latency);
+            deltaServerAvgLatency[deltaServerAvgLatency.length - 1] = Number(delta.serverAvgLatency);
+            deltaServerP95Latency[deltaServerP95Latency.length - 1] = Number(delta.serverP95Latency);
+            deltaActiveTerminals[deltaActiveTerminals.length - 1] = Number(delta.activeTerminals);
+            return;
+        }
+
+        deltaTime.push(second);
+        deltaTps.push(Number(delta.tps));
+        deltaClientAvgLatency.push(Number(delta.clientAvgLatency));
+        deltaClientP95Latency.push(Number(delta.clientP95Latency));
+        deltaServerAvgLatency.push(Number(delta.serverAvgLatency));
+        deltaServerP95Latency.push(Number(delta.serverP95Latency));
+        deltaActiveTerminals.push(Number(delta.activeTerminals));
+    }
+    function updateChartsFromDelta() {
+        const tpsData = deltaTime.map((second, index) => [
+            second,
+            deltaTps[index]
+        ]);
+
+        const clientAvgData = deltaTime.map((second, index) => [
+            second,
+            deltaClientAvgLatency[index]
+        ]);
+
+        const clientP95Data = deltaTime.map((second, index) => [
+            second,
+            deltaClientP95Latency[index]
+        ]);
+
+        const serverAvgData = deltaTime.map((second, index) => [
+            second,
+            deltaServerAvgLatency[index]
+        ]);
+
+        const serverP95Data = deltaTime.map((second, index) => [
+            second,
+            deltaServerP95Latency[index]
+        ]);
+
+        const activeData = deltaTime.map((second, index) => [
+            second,
+            deltaActiveTerminals[index]
+        ]);
+
+        updateTpsChartWithData(tpsData);
+        updateClientLatencyChartWithData(clientAvgData, clientP95Data);
+        updateServerLatencyChartWithData(serverAvgData, serverP95Data);
+        updateActiveTerminalsChartWithData(activeData);
+    }
+    function updateTpsChartWithData(data) {
+        if (!tpsChart) return;
+
+        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        lastMinSecond = minSecond;
+        lastLatestSecond = latestSecond;
+
+        tpsChart.setOption({
+            series: [{
+                name: "TPS",
+                type: "line",
+                data: data,
+                symbol: "circle",
+                symbolSize: 10,
+                showSymbol: true,
+                smooth: 0.2,
+                clip: false
+            }]
+        });
+
+        if (autoFollowTps) {
+            ignoreNextDataZoomEvent = true;
+            tpsChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
+        }
+    }
+    function updateServerLatencyChartWithData(avgData, p95Data) {
+        if (!serverLatencyChart) return;
+
+        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        serverLatencyChart.setOption({
+            series: [
+                {
+                    name: "Server Avg Latency",
+                    type: "line",
+                    data: avgData,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    clip: false
+                },
+                {
+                    name: "Server P95 Latency",
+                    type: "line",
+                    data: p95Data,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    lineStyle: { type: "dashed" },
+                    clip: false
+                }
+            ]
+        });
+
+        if (autoFollowServerLatency) {
+            ignoreNextDataZoomEvent = true;
+            serverLatencyChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
+        }
+    }
+    function updateActiveTerminalsChartWithData(data) {
+        if (!activeTerminalsChart) return;
+
+        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        activeLastMinSecond = minSecond;
+        activeLastLatestSecond = latestSecond;
+
+        activeTerminalsChart.setOption({
+            series: [{
+                name: "Active Terminals",
+                type: "line",
+                step: "end",
+                data: data,
+                symbol: "circle",
+                symbolSize: 8,
+                showSymbol: true,
+                smooth: false,
+                clip: false
+            }]
+        });
+
+        if (autoFollowActiveTerminals) {
+            ignoreNextDataZoomEvent = true;
+            activeTerminalsChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
+        }
+    }
+    function updateClientLatencyChartWithData(avgData, p95Data) {
+        if (!latencyChart) return;
+
+        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        latencyChart.setOption({
+            series: [
+                {
+                    name: "Avg Latency",
+                    type: "line",
+                    data: avgData,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    clip: false
+                },
+                {
+                    name: "P95 Latency",
+                    type: "line",
+                    data: p95Data,
+                    symbol: "circle",
+                    symbolSize: 10,
+                    showSymbol: true,
+                    smooth: 0.2,
+                    lineStyle: { type: "dashed" },
+                    clip: false
+                }
+            ]
+        });
+
+        if (autoFollowClientLatency) {
+            ignoreNextDataZoomEvent = true;
+
+            latencyChart.dispatchAction({
+                type: "dataZoom",
+                startValue: minSecond,
+                endValue: latestSecond
+            });
+
+            setTimeout(() => {
+                ignoreNextDataZoomEvent = false;
+            }, 0);
+        }
+    }
 </script>
 
 </body>

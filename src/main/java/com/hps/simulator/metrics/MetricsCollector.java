@@ -90,11 +90,28 @@ public class MetricsCollector {
                     bucket.getSuccess(),
                     bucket.getError(),
                     bucket.getTimeout(),
-                    bucket.getAverageLatency()
+                    bucket.getAverageLatency(),
+                    bucket.getP95Latency()
             ));
         }
 
         points.sort(Comparator.comparingLong(SecondMetricsPoint::getSecond));
         return points;
+    }
+
+    public double getAverageLatencyFromTimelineWeighted() {
+        long totalCount = 0;
+        long totalLatencySum = 0;
+
+        for (SecondMetricsBucket bucket : timeline.values()) {
+            totalCount += bucket.getTotal();
+            totalLatencySum += bucket.getTotalLatency();
+        }
+
+        if (totalCount == 0) {
+            return 0.0;
+        }
+
+        return totalLatencySum * 1.0 / totalCount;
     }
 }

@@ -15,4 +15,7 @@ public class LiveMetricsPublisher {
     public void publish(LiveMetricsSnapshot snapshot) {
         messagingTemplate.convertAndSend("/topic/live-metrics", snapshot);
     }
+    public void publishDelta(LiveMetricsDelta delta) {
+        messagingTemplate.convertAndSend("/topic/live-metrics-delta", delta);
+    }
 }
