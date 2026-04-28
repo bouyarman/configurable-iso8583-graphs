@@ -5,6 +5,7 @@ import com.hps.simulator.iso.BinaryIsoMessagePacker;
 import com.hps.simulator.iso.BinaryIsoMessageUnpacker;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.metrics.MetricsCollector;
+import com.hps.simulator.metrics.ServerMetricsCollector;
 import com.hps.simulator.metrics.TransactionResult;
 import com.hps.simulator.metrics.TransactionStatus;
 import com.hps.simulator.network.BinaryIsoTcpClient;
@@ -25,6 +26,7 @@ public class RampUpTerminalWorker implements Runnable {
     private final int terminalIndex;
     private final int totalTerminals;
     private final int transactionsThisSecond;
+    private final ServerMetricsCollector serverMetricsCollector;
 
     public RampUpTerminalWorker(VirtualTerminal terminal,
                                 MetricsCollector metricsCollector,
@@ -34,7 +36,8 @@ public class RampUpTerminalWorker implements Runnable {
                                 SimulationRequest request,
                                 int terminalIndex,
                                 int totalTerminals,
-                                int transactionsThisSecond) {
+                                int transactionsThisSecond,
+                                ServerMetricsCollector serverMetricsCollector) {
         this.terminal = terminal;
         this.metricsCollector = metricsCollector;
         this.client = client;
@@ -45,6 +48,7 @@ public class RampUpTerminalWorker implements Runnable {
         this.terminalIndex = terminalIndex;
         this.totalTerminals = totalTerminals;
         this.transactionsThisSecond = transactionsThisSecond;
+        this.serverMetricsCollector = serverMetricsCollector;
     }
 
     @Override
@@ -59,8 +63,8 @@ public class RampUpTerminalWorker implements Runnable {
         }
 
         for (int i = 0; i < transactionsThisSecond; i++) {
+            final long start = System.currentTimeMillis();
             try {
-                long start = System.currentTimeMillis();
 
                 IsoMessage requestMessage = terminal.generateTransaction();
                 byte[] requestBytes = packer.pack(requestMessage);
@@ -85,17 +89,26 @@ public class RampUpTerminalWorker implements Runnable {
                         start
                 );
 
+                String stan = requestMessage.getField(11);
+                Long serverLatency = null;
+                for (int j = 0; j < 3; j++) {
+                    serverLatency = serverMetricsCollector.getServerLatencyByStan(stan);
+                    if (serverLatency != null) break;
+                    try { Thread.sleep(2); } catch (InterruptedException ignored) {}
+                }
+                result.setServerLatencyMillis(serverLatency);
                 metricsCollector.recordTransactionResult(result);
 
             } catch (Exception e) {
+                long latency = System.currentTimeMillis() - start;
                 TransactionResult result = new TransactionResult(
                         terminal.getTerminalId(),
                         null,
                         null,
                         TransactionStatus.TIMEOUT,
                         null,
-                        0,
-                        System.currentTimeMillis()
+                        latency,
+                        start
                 );
                 metricsCollector.recordTransactionResult(result);
             }

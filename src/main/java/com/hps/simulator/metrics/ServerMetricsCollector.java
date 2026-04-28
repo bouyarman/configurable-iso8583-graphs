@@ -59,9 +59,13 @@ public class ServerMetricsCollector {
     }
 
     public void reset() {
+        reset(System.currentTimeMillis());
+    }
+
+    public void reset(long sharedStartTimeMillis) {
         timeline.clear();
         serverLatencyByStan.clear();
-        startTimeMillis = System.currentTimeMillis();
+        this.startTimeMillis = sharedStartTimeMillis;
         firstObservedSecond = null;
     }
 

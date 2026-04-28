@@ -113,8 +113,6 @@ public class SimulationController {
             sessionStore.setLastRequest(request);
             RunManager.initNewRun();
 
-            System.out.println("Switch config updated => min=" + request.getMinLatencyMs()
-                    + ", max=" + request.getMaxLatencyMs());
 
             SimulationSession session = connectionService.createSimulationSession(
                     request.getHost(),
@@ -241,9 +239,6 @@ public class SimulationController {
                             + ", avgLatency=" + point.getAverageLatency()
             );
         }
-        System.out.println("===== LATENCY CHECK =====");
-        System.out.println("GLOBAL AVG LATENCY = " + currentMetricsCollector.getAverageLatency());
-        System.out.println("TIMELINE WEIGHTED AVG LATENCY = " + currentMetricsCollector.getAverageLatencyFromTimelineWeighted());
 
         SimulationResultView result = new SimulationResultView(
                 currentMetricsCollector.getTotalTransactions(),
@@ -277,5 +272,12 @@ public class SimulationController {
         }
 
         return currentMetricsCollector.getTransactionsBySecond(second);
+    }
+
+    @PostMapping("/stop-simulation")
+    @ResponseBody
+    public String stopSimulation() {
+        simulationRunner.stopSimulation();
+        return "Stop requested.";
     }
 }

@@ -21,6 +21,7 @@ public class SimulationRunner {
     private final LiveMetricsPublisher liveMetricsPublisher;
     private final ServerMetricsCollector serverMetricsCollector;
 
+
     public SimulationRunner(LiveMetricsPublisher liveMetricsPublisher,
                             ServerMetricsCollector serverMetricsCollector) {
 
@@ -31,8 +32,10 @@ public class SimulationRunner {
     public MetricsCollector runSimulation(SimulationSession session,
                                           SimulationRequest request,
                                           ProtocolDefinition protocol) throws InterruptedException {
-
-        MetricsCollector metricsCollector = new MetricsCollector();
+        stopRequested = false;
+        long simulationStartMillis = System.currentTimeMillis();
+        serverMetricsCollector.reset(simulationStartMillis);
+        MetricsCollector metricsCollector = new MetricsCollector(simulationStartMillis);
 
         for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
             connectedSession.getTerminal().setTps(request.getTpsPerTerminal());
@@ -41,10 +44,9 @@ public class SimulationRunner {
         ScheduledExecutorService livePublisherScheduler = Executors.newSingleThreadScheduledExecutor();
 
         livePublisherScheduler.scheduleAtFixedRate(() -> {
-            LiveMetricsSnapshot snapshot = buildSnapshot(session, request, metricsCollector, true);;
             LiveMetricsDelta delta = buildDelta(session, request, metricsCollector, true);
             liveMetricsPublisher.publishDelta(delta);
-            }, 0, 1, TimeUnit.SECONDS);
+        }, 0, 1, TimeUnit.SECONDS);
 
         try {
             if (request.getTestMode() == TestMode.RAMP_UP_TPS_PER_TERMINAL) {
@@ -59,7 +61,7 @@ public class SimulationRunner {
 
             livePublisherScheduler.shutdownNow();
 
-            LiveMetricsSnapshot finalSnapshot = buildSnapshot(session, request, metricsCollector, false);;
+            LiveMetricsSnapshot finalSnapshot = buildSnapshot(session, request, metricsCollector, false);
             liveMetricsPublisher.publish(finalSnapshot);
         }
 
@@ -74,7 +76,7 @@ public class SimulationRunner {
         ScheduledExecutorService scheduler =
                 Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
 
-        long simulationStartMillis = System.currentTimeMillis(); // ✅ ONCE
+        long simulationStartMillis = System.currentTimeMillis();
         int totalTerminals = session.getConnectedTerminals().size();
 
         for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
@@ -98,9 +100,12 @@ public class SimulationRunner {
             );
         }
 
-        Thread.sleep(request.getDurationSeconds() * 1000L);
+        long endTime = System.currentTimeMillis() + request.getDurationSeconds() * 1000L;
 
-        scheduler.shutdown();
+        while (!stopRequested && System.currentTimeMillis() < endTime) {
+            Thread.sleep(200L);
+        }
+        scheduler.shutdownNow();
         scheduler.awaitTermination(5, TimeUnit.SECONDS);
     }
 
@@ -117,8 +122,7 @@ public class SimulationRunner {
         long simulationStartMillis = System.currentTimeMillis();
         int totalTerminals = session.getConnectedTerminals().size();
 
-        for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds; elapsedSeconds++) {
-
+        for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds && !stopRequested; elapsedSeconds++) {
             int stepIndex = elapsedSeconds / rampIntervalSeconds;
             int currentTps = initialTps + (stepIndex * rampStepTps);
             currentTps = Math.max(1, currentTps);
@@ -137,20 +141,20 @@ public class SimulationRunner {
                                 request,
                                 connectedSession.getTerminalIndex(),
                                 totalTerminals,
-                                currentTps
+                                currentTps,
+                                serverMetricsCollector
                         ),
                         0,
                         TimeUnit.MILLISECONDS
                 );
             }
 
-            System.out.println("Ramp-Up Step => elapsed=" + elapsedSeconds
-                    + "s, current TPS per terminal=" + currentTps
-                    + ", step duration=1s");
 
-            Thread.sleep(1000L);
 
-            scheduler.shutdown();
+            for (int i = 0; i < 10 && !stopRequested; i++) {
+                Thread.sleep(100L);
+            }
+            scheduler.shutdownNow();
             scheduler.awaitTermination(5, TimeUnit.SECONDS);
         }
     }
@@ -167,18 +171,15 @@ public class SimulationRunner {
         long simulationStartMillis = System.currentTimeMillis();
         int totalTerminals = session.getConnectedTerminals().size();
 
-        for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds; elapsedSeconds++) {
-
+        for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds && !stopRequested; elapsedSeconds++) {
             double progress = (totalDurationSeconds <= 1)
                     ? 1.0
                     : (elapsedSeconds / (double) (totalDurationSeconds - 1));
 
-
-
-            int currentTps = initialTps + (int) Math.floor(
-                    ((targetTps - initialTps + 1) * elapsedSeconds) / (double) totalDurationSeconds
+            int currentTps = initialTps + (int) Math.round(
+                    (targetTps - initialTps) * progress
             );
-            currentTps = Math.min(targetTps, currentTps);
+            currentTps = Math.min(targetTps, Math.max(initialTps, currentTps));
 
             ScheduledExecutorService scheduler =
                     Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
@@ -194,30 +195,24 @@ public class SimulationRunner {
                                 request,
                                 connectedSession.getTerminalIndex(),
                                 totalTerminals,
-                                currentTps
+                                currentTps,
+                                serverMetricsCollector
                         ),
                         0,
                         TimeUnit.MILLISECONDS
                 );
             }
 
-            System.out.println("Linear Step => elapsed=" + elapsedSeconds
-                    + "s, current TPS per terminal=" + currentTps
-                    + ", step duration=1s");
 
-            Thread.sleep(1000L);
+            for (int i = 0; i < 10 && !stopRequested; i++) {
+                Thread.sleep(100L);
+            }
 
-            scheduler.shutdown();
+            scheduler.shutdownNow();
             scheduler.awaitTermination(5, TimeUnit.SECONDS);
         }
     }
 
-    private int getCurrentTpsLabel(SimulationSession session) {
-        if (session.getConnectedTerminals().isEmpty()) {
-            return 0;
-        }
-        return session.getConnectedTerminals().get(0).getTerminal().getTps();
-    }
 
     private LiveMetricsSnapshot buildSnapshot(SimulationSession session,
                                               SimulationRequest request,
@@ -238,12 +233,10 @@ public class SimulationRunner {
         List<Double> serverP95LatencyList = new ArrayList<>();
 
         double currentTps = 0.0;
-        double currentAverageLatency = metricsCollector.getAverageLatency();
 
         if (!points.isEmpty()) {
             SecondMetricsPoint lastPoint = points.get(points.size() - 1);
             currentTps = lastPoint.getTotal();
-            currentAverageLatency = lastPoint.getAverageLatency();
             snapshot.setElapsedSeconds((int) lastPoint.getSecond());
         }
 
@@ -405,5 +398,10 @@ public class SimulationRunner {
         }
 
         return delta;
+    }
+
+    private volatile boolean stopRequested = false;
+    public void stopSimulation() {
+        stopRequested = true;
     }
 }

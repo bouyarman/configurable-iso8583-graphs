@@ -184,12 +184,22 @@
             </tbody>
         </table>
     </div>
+    <div>
 
-    <button type="button"
+    <button id="simulateBtn"
+            type="button"
             onclick="startSimulation()"
             th:disabled="${simulationSession.connectedCount == 0}">
         Simuler
     </button>
+
+    <button id="stopBtn"
+            type="button"
+            onclick="stopSimulation()"
+            disabled>
+        Stop
+    </button>
+    </div>
 
     <p id="simulationMessage"></p>
 
@@ -229,10 +239,10 @@
     </div>
     <div class="charts-grid">
 
-    <div class="chart-box">
-        <h3>Outcome Breakdown</h3>
-        <div id="outcomeDonutChart" style="height:300px;"></div>
-    </div>
+        <div class="chart-box">
+            <h3>Outcome Breakdown</h3>
+            <div id="outcomeDonutChart" style="height:300px;"></div>
+        </div>
     </div>
 
 </div>
@@ -312,121 +322,236 @@
     <p>Latence moyenne (ms) : <strong th:text="${result.avgLatency}"></strong></p>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
 <script>
 
+    let tpsUserMin = null;
+    let tpsUserMax = null;
+    let suppressTpsZoomEvent = false;
 
     const DEFAULT_VISIBLE_SECONDS = 45;
 
     let autoFollowTps = true;
     let autoFollowClientLatency = true;
     let autoFollowServerLatency = true;
-    let activeLastMinSecond = null;
-    let activeLastLatestSecond = null;
-
-    let serverLatencyChart = null;
-    let outcomeDonutChart = null;
-
-    let activeTerminalsChart = null;
     let autoFollowActiveTerminals = true;
+
+    let tpsChart = null;
+    let latencyChart = null;
+    let serverLatencyChart = null;
+    let activeTerminalsChart = null;
+    let outcomeDonutChart = null;
 
     let deltaTime = [];
     let deltaTps = [];
-
     let deltaClientAvgLatency = [];
     let deltaClientP95Latency = [];
-
     let deltaServerAvgLatency = [];
     let deltaServerP95Latency = [];
-
     let deltaActiveTerminals = [];
 
-    function toggleRampUpFields() {
-        const testMode = document.getElementById("testMode").value;
-        const rampUpFields = document.getElementById("rampUpFields");
-
-        if (testMode === "RAMP_UP_TPS_PER_TERMINAL") {
-            rampUpFields.style.display = "block";
-        } else {
-            rampUpFields.style.display = "none";
-        }
-    }
+    let stompClient = null;
 
     document.addEventListener("DOMContentLoaded", function () {
         initTpsChart();
         initLatencyChart();
+        initServerLatencyChart();
+        initActiveTerminalsChart();
+        initOutcomeDonutChart();
+
         connectLiveMetricsWebSocket();
 
         toggleTestModeOptions();
         toggleRampUpFields();
         toggleSequentialOptions();
-
-        initServerLatencyChart();
-
-        initOutcomeDonutChart();
-        initActiveTerminalsChart();
     });
 
-    const launchSelect = document.getElementById("launchStrategy");
-    const sequentialDiv = document.getElementById("sequentialOptions");
+    function createLineChartOptions(title, yTitle, series, onPointClick, curve = "smooth") {
+        return {
+            chart: {
+                type: "line",
+                height: 300,
+                animations: { enabled: false },
+                zoom: {
+                    enabled: true,
+                    type: "x",
+                    autoScaleYaxis: true
+                },
+                toolbar: {
+                    show: true,
+                    tools: {
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                },
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        if (!onPointClick) return;
 
-    function toggleSequentialOptions() {
-        if (launchSelect.value === "SEQUENTIAL") {
-            sequentialDiv.style.display = "block";
-        } else {
-            sequentialDiv.style.display = "none";
-        }
+                        const serie = config.w.config.series[config.seriesIndex];
+                        if (!serie) return;
+
+                        const point = serie.data[config.dataPointIndex];
+                        if (!point) return;
+
+                        onPointClick(point.x);
+                    },
+
+                    zoomed: function(chartContext, { xaxis }) {
+                        if (title === "TPS") {
+                            if (suppressTpsZoomEvent) return;
+
+                            autoFollowTps = false;
+                            tpsUserMin = xaxis.min;
+                            tpsUserMax = xaxis.max;
+                        }
+                    },
+
+                    scrolled: function(chartContext, { xaxis }) {
+                        if (title === "TPS") {
+                            if (suppressTpsZoomEvent) return;
+
+                            autoFollowTps = false;
+                            tpsUserMin = xaxis.min;
+                            tpsUserMax = xaxis.max;
+                        }
+                    }
+                }
+                },
+            series: series,
+            xaxis: {
+                type: "numeric",
+                title: { text: "Seconds" }
+            },
+            yaxis: {
+                min: 0,
+                title: { text: yTitle }
+            },
+            markers: {
+                size: 5
+            },
+            stroke: {
+                curve: curve,
+                width: 2
+            },
+            tooltip: {
+                x: {
+                    formatter: value => value + "s"
+                }
+            }
+        };
+    }
+    function disableAutoFollow(title) {
+        if (title === "TPS") autoFollowTps = false;
+        if (title === "Client Latency") autoFollowClientLatency = false;
+        if (title === "Server Latency") autoFollowServerLatency = false;
+        if (title === "Active Terminals") autoFollowActiveTerminals = false;
+    }
+    function initTpsChart() {
+        const element = document.getElementById("tpsChart");
+        if (!element) return;
+
+        tpsChart = new ApexCharts(element, createLineChartOptions(
+            "TPS",
+            "TPS",
+            [{ name: "TPS", data: [] }],
+            fetchTransactionsBySecond
+        ));
+
+        tpsChart.render();
     }
 
-    toggleSequentialOptions();
-    launchSelect.addEventListener("change", toggleSequentialOptions);
+    function initLatencyChart() {
+        const element = document.getElementById("latencyChart");
+        if (!element) return;
 
-    const testModeSelect = document.getElementById("testMode");
-    const rampUpFields = document.getElementById("rampUpFields");
-    const linearOptions = document.getElementById("linearOptions");
+        latencyChart = new ApexCharts(element, createLineChartOptions(
+            "Client Latency",
+            "Latency ms",
+            [
+                { name: "Client Avg Latency", data: [] },
+                { name: "Client P95 Latency", data: [] }
+            ],
+            fetchTransactionsBySecond
+        ));
 
-    function toggleTestModeOptions() {
-        const mode = testModeSelect.value;
-
-        if (mode === "RAMP_UP_TPS_PER_TERMINAL") {
-            rampUpFields.style.display = "block";
-        } else {
-            rampUpFields.style.display = "none";
-        }
-
-        if (mode === "LINEAR_TPS_PER_TERMINAL") {
-            linearOptions.style.display = "block";
-        } else {
-            linearOptions.style.display = "none";
-        }
+        latencyChart.render();
     }
 
-    testModeSelect.addEventListener("change", toggleTestModeOptions);
+    function initServerLatencyChart() {
+        const element = document.getElementById("serverLatencyChart");
+        if (!element) return;
 
-    let stompClient = null;
-    let ignoreNextDataZoomEvent = false;
-    let lastMinSecond = null;
-    let lastLatestSecond = null;
+        serverLatencyChart = new ApexCharts(element, createLineChartOptions(
+            "Server Latency",
+            "Latency ms",
+            [
+                { name: "Server Avg Latency", data: [] },
+                { name: "Server P95 Latency", data: [] }
+            ],
+            fetchTransactionsBySecond
+        ));
 
+        serverLatencyChart.render();
+    }
+
+    function initActiveTerminalsChart() {
+        const element = document.getElementById("activeTerminalsChart");
+        if (!element) return;
+
+        activeTerminalsChart = new ApexCharts(element, createLineChartOptions(
+            "Active Terminals",
+            "Terminals",
+            [{ name: "Active Terminals", data: [] }],
+            null,
+            "stepline"
+        ));
+
+        activeTerminalsChart.render();
+    }
+
+    function initOutcomeDonutChart() {
+        const element = document.getElementById("outcomeDonutChart");
+        if (!element) return;
+
+        outcomeDonutChart = new ApexCharts(element, {
+            chart: {
+                type: "donut",
+                height: 300,
+                animations: { enabled: false }
+            },
+            labels: ["Success", "Error", "Timeout"],
+            series: [0, 0, 0],
+            legend: {
+                position: "bottom"
+            }
+        });
+
+        outcomeDonutChart.render();
+    }
 
     function connectLiveMetricsWebSocket() {
-        const socket = new SockJS('/ws-simulation');
+        const socket = new SockJS("/ws-simulation");
         stompClient = Stomp.over(socket);
 
         stompClient.connect({}, function () {
             console.log("Connected to live metrics WebSocket");
 
-            stompClient.subscribe('/topic/live-metrics', function (message) {
+            stompClient.subscribe("/topic/live-metrics", function (message) {
                 const snapshot = JSON.parse(message.body);
                 updateSnapshotKPI(snapshot);
             });
-            stompClient.subscribe('/topic/live-metrics-delta', function (message) {
+
+            stompClient.subscribe("/topic/live-metrics-delta", function (message) {
                 const delta = JSON.parse(message.body);
                 updateRealtimeMetrics(delta);
             });
-
         }, function (error) {
             console.error("WebSocket connection error", error);
         });
@@ -437,188 +562,270 @@
         setText("liveSuccess", snapshot.successTransactions);
         setText("liveError", snapshot.errorTransactions);
         setText("liveTimeout", snapshot.timeoutTransactions);
-
         setText("liveTps", Number(snapshot.currentTps).toFixed(2));
         setText("liveAvgLatency", Number(snapshot.averageLatencyMs).toFixed(2));
         setText("liveSuccessRate", Number(snapshot.successRate).toFixed(2));
-
         setText("liveConnectedTerminals", snapshot.connectedTerminals);
         setText("liveActiveTerminals", snapshot.activeTerminals);
 
-        const statusElement = document.getElementById("liveStatus");
+        updateStatus(snapshot.running);
+        updateOutcomeDonutChart(snapshot.successTransactions, snapshot.errorTransactions, snapshot.timeoutTransactions);
+    }
 
-        if (statusElement) {
-            if (snapshot.running) {
-                statusElement.textContent = "RUNNING";
-                statusElement.className = "ok";
-            } else {
-                statusElement.textContent = "STOPPED";
-                statusElement.className = "bad";
-            }
+    function updateRealtimeMetrics(delta) {
+        setText("liveTotal", delta.totalTransactions);
+        setText("liveSuccess", delta.successTransactions);
+        setText("liveError", delta.errorTransactions);
+        setText("liveTimeout", delta.timeoutTransactions);
+        setText("liveTps", Number(delta.tps).toFixed(2));
+        setText("liveAvgLatency", Number(delta.clientAvgLatency).toFixed(2));
+        setText("liveSuccessRate", Number(delta.successRate).toFixed(2));
+        setText("liveActiveTerminals", delta.activeTerminals);
+
+        updateStatus(delta.running);
+
+        appendDeltaPoint(delta);
+        updateChartsFromDelta();
+
+        updateOutcomeDonutChart(delta.successTransactions, delta.errorTransactions, delta.timeoutTransactions);
+    }
+
+    function appendDeltaPoint(delta) {
+        const second = Number(delta.second);
+
+        if (deltaTime.length > 0 && deltaTime[deltaTime.length - 1] === second) {
+            const i = deltaTime.length - 1;
+
+            deltaTps[i] = Number(delta.tps);
+            deltaClientAvgLatency[i] = Number(delta.clientAvgLatency);
+            deltaClientP95Latency[i] = Number(delta.clientP95Latency);
+            deltaServerAvgLatency[i] = delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency);
+            deltaServerP95Latency[i] = delta.serverP95Latency == null ? null : Number(delta.serverP95Latency);
+            deltaActiveTerminals[i] = Number(delta.activeTerminals);
+            return;
         }
-        updateOutcomeDonutChart(snapshot);
 
+        deltaTime.push(second);
+        deltaTps.push(Number(delta.tps));
+        deltaClientAvgLatency.push(Number(delta.clientAvgLatency));
+        deltaClientP95Latency.push(Number(delta.clientP95Latency));
+        deltaServerAvgLatency.push(delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency));
+        deltaServerP95Latency.push(delta.serverP95Latency == null ? null : Number(delta.serverP95Latency));
+        deltaActiveTerminals.push(Number(delta.activeTerminals));
     }
 
-    function setText(id, value) {
-        const element = document.getElementById(id);
+    function updateChartsFromDelta() {
+        updateTpsChartWithData();
+        updateClientLatencyChartWithData();
+        updateServerLatencyChartWithData();
+        updateActiveTerminalsChartWithData();
+    }
 
-        if (element) {
-            element.textContent = value;
+    function toApexData(values) {
+        return deltaTime.map((second, index) => ({
+            x: second,
+            y: values[index]
+        }));
+    }
+
+    function latestRange() {
+        if (deltaTime.length === 0) return null;
+
+        const latestSecond = deltaTime[deltaTime.length - 1];
+        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
+
+        return { minSecond, latestSecond };
+    }
+
+    function updateTpsChartWithData() {
+        if (!tpsChart) return;
+
+        const data = toApexData(deltaTps);
+
+        tpsChart.updateSeries([
+            { name: "TPS", data: data }
+        ], false);
+
+        const range = latestRange();
+
+        if (autoFollowTps && range) {
+            suppressTpsZoomEvent = true;
+            tpsChart.zoomX(range.minSecond, range.latestSecond);
+
+            setTimeout(() => {
+                suppressTpsZoomEvent = false;
+            }, 0);
+        }
+
+        if (!autoFollowTps && tpsUserMin !== null && tpsUserMax !== null) {
+            suppressTpsZoomEvent = true;
+            tpsChart.zoomX(tpsUserMin, tpsUserMax);
+
+            setTimeout(() => {
+                suppressTpsZoomEvent = false;
+            }, 0);
+        }
+    }
+    function updateClientLatencyChartWithData() {
+        if (!latencyChart) return;
+
+        latencyChart.updateSeries([
+            { name: "Client Avg Latency", data: toApexData(deltaClientAvgLatency) },
+            { name: "Client P95 Latency", data: toApexData(deltaClientP95Latency) }
+        ], false);
+
+        if (autoFollowClientLatency) {
+            const range = latestRange();
+            if (range) latencyChart.zoomX(range.minSecond, range.latestSecond);
         }
     }
 
-    function startSimulation() {
-        const messageElement = document.getElementById("simulationMessage");
+    function updateServerLatencyChartWithData() {
+        if (!serverLatencyChart) return;
 
-        if (messageElement) {
-            messageElement.textContent = "Simulation running...";
+        serverLatencyChart.updateSeries([
+            { name: "Server Avg Latency", data: toApexData(deltaServerAvgLatency) },
+            { name: "Server P95 Latency", data: toApexData(deltaServerP95Latency) }
+        ], false);
+
+        if (autoFollowServerLatency) {
+            const range = latestRange();
+            if (range) serverLatencyChart.zoomX(range.minSecond, range.latestSecond);
         }
-
-        fetch("/simulate", {
-            method: "GET"
-        })
-            .then(response => response.text())
-            .then(() => {
-                if (messageElement) {
-                    messageElement.textContent = "Simulation finished.";
-                }
-            })
-            .catch(error => {
-                console.error("Simulation error:", error);
-
-                if (messageElement) {
-                    messageElement.textContent = "Simulation error.";
-                }
-            });
     }
 
-    let tpsChart = null;
-    let latencyChart = null;
+    function updateActiveTerminalsChartWithData() {
+        if (!activeTerminalsChart) return;
 
-    function initTpsChart() {
-        const element = document.getElementById("tpsChart");
-        if (!element) return;
+        activeTerminalsChart.updateSeries([
+            { name: "Active Terminals", data: toApexData(deltaActiveTerminals) }
+        ], false);
 
-        tpsChart = echarts.init(element);
-
-        tpsChart.setOption(createLineChartOption("TPS", "TPS"));
-
-        tpsChart.on("click", function (params) {
-            if (!params.value) return;
-
-            const second = params.value[0];
-            const value = params.value[1];
-
-            const hoverInfo = document.getElementById("hoverInfo");
-            if (hoverInfo) {
-                hoverInfo.innerText = "TPS: " + Number(value).toFixed(2) + " at " + second + "s";
-            }
-
-            fetchTransactionsBySecond(second);
-        });
-        tpsChart.on("datazoom", function () {
-            if (ignoreNextDataZoomEvent) return;
-            autoFollowTps = false;
-        });
+        if (autoFollowActiveTerminals) {
+            const range = latestRange();
+            if (range) activeTerminalsChart.zoomX(range.minSecond, range.latestSecond);
+        }
     }
 
-    function initLatencyChart() {
-        const element = document.getElementById("latencyChart");
-        if (!element) return;
+    function updateOutcomeDonutChart(success, error, timeout) {
+        if (!outcomeDonutChart) return;
 
-        latencyChart = echarts.init(element);
-
-        latencyChart.setOption(createLineChartOption("Latency", "Latency ms"));
-
-        latencyChart.on("click", function (params) {
-            if (!params.value) return;
-
-            const second = params.value[0];
-            const value = params.value[1];
-
-            document.getElementById("hoverInfo").innerText =
-                params.seriesName + ": " + Number(value).toFixed(2) + " ms at " + second + "s";
-            const hoverInfo = document.getElementById("hoverInfo");
-            if (hoverInfo) {
-                hoverInfo.innerText = "Latency: " + Number(value).toFixed(2) + " at " + second + "s";
-            }
-            fetchTransactionsBySecond(second);
-        });
-        latencyChart.on("datazoom", function () {
-            if (ignoreNextDataZoomEvent) return;
-            autoFollowClientLatency = false;
-        });
-    }
-
-    function createLineChartOption(title, yName) {
-        return {
-            animation: false,
-            tooltip: {
-                trigger: "item",
-                formatter: function (params) {
-                    return params.seriesName + ": " + Number(params.value[1]).toFixed(2);
-                }
-            },
-            grid: {
-                left: 50,
-                right: 25,
-                top: 30,
-                bottom: 55
-            },
-            xAxis: {
-                type: "value",
-                name: "Seconds",
-                boundaryGap: false
-            },
-            yAxis: {
-                type: "value",
-                name: yName,
-                min: 0
-            },
-            dataZoom: [
-                {
-                    type: "inside",
-                    xAxisIndex: 0,
-                    zoomOnMouseWheel: true,
-                    moveOnMouseMove: true,
-                    moveOnMouseWheel: false
-                },
-                {
-                    type: "slider",
-                    xAxisIndex: 0,
-                    height: 20,
-                    bottom: 20
-                }
-            ],
-            series: []
-        };
+        outcomeDonutChart.updateSeries([
+            Number(success || 0),
+            Number(error || 0),
+            Number(timeout || 0)
+        ]);
     }
 
     function followLatestTps() {
         autoFollowTps = true;
-        followLatestChart(tpsChart);
+        tpsUserMin = null;
+        tpsUserMax = null;
+
+        const range = latestRange();
+        if (!range || !tpsChart) return;
+
+        suppressTpsZoomEvent = true;
+        tpsChart.zoomX(range.minSecond, range.latestSecond);
+
+        setTimeout(() => {
+            suppressTpsZoomEvent = false;
+        }, 0);
     }
 
     function followLatestClientLatency() {
         autoFollowClientLatency = true;
-        followLatestChart(latencyChart);
+        goLive(latencyChart);
     }
 
     function followLatestServerLatency() {
         autoFollowServerLatency = true;
-        followLatestChart(serverLatencyChart);
+        goLive(serverLatencyChart);
     }
 
-    function followLatestChart(chart) {
-        if (!chart || lastMinSecond === null || lastLatestSecond === null) return;
-
-        chart.dispatchAction({
-            type: "dataZoom",
-            startValue: lastMinSecond,
-            endValue: lastLatestSecond
-        });
+    function followLatestActiveTerminals() {
+        autoFollowActiveTerminals = true;
+        goLive(activeTerminalsChart);
     }
+
+    function goLive(chart) {
+        if (!chart) return;
+
+        const range = latestRange();
+        if (!range) return;
+
+        chart.zoomX(range.minSecond, range.latestSecond);
+    }
+
+    function startSimulation() {
+        const simulateBtn = document.getElementById("simulateBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const messageElement = document.getElementById("simulationMessage");
+
+        resetDashboardForNewRun();
+
+        if (simulateBtn) simulateBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = false;
+        if (messageElement) messageElement.textContent = "Simulation running...";
+
+        fetch("/simulate", { method: "GET" })
+            .then(response => response.text())
+            .then(() => {
+                if (messageElement) messageElement.textContent = "Simulation finished.";
+            })
+            .catch(error => {
+                console.error("Simulation error:", error);
+                if (messageElement) messageElement.textContent = "Simulation error.";
+            })
+            .finally(() => {
+                if (simulateBtn) simulateBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = true;
+            });
+    }
+
+    function stopSimulation() {
+        fetch("/stop-simulation", { method: "POST" })
+            .then(response => response.text())
+            .then(message => {
+                const messageElement = document.getElementById("simulationMessage");
+                if (messageElement) messageElement.textContent = message;
+            })
+            .catch(error => console.error("Stop error:", error));
+    }
+
+    function resetDashboardForNewRun() {
+        autoFollowTps = true;
+        autoFollowClientLatency = true;
+        autoFollowServerLatency = true;
+        autoFollowActiveTerminals = true;
+
+        deltaTime = [];
+        deltaTps = [];
+        deltaClientAvgLatency = [];
+        deltaClientP95Latency = [];
+        deltaServerAvgLatency = [];
+        deltaServerP95Latency = [];
+        deltaActiveTerminals = [];
+
+        if (tpsChart) tpsChart.updateSeries([{ name: "TPS", data: [] }], false);
+        if (latencyChart) latencyChart.updateSeries([
+            { name: "Client Avg Latency", data: [] },
+            { name: "Client P95 Latency", data: [] }
+        ], false);
+        if (serverLatencyChart) serverLatencyChart.updateSeries([
+            { name: "Server Avg Latency", data: [] },
+            { name: "Server P95 Latency", data: [] }
+        ], false);
+        if (activeTerminalsChart) activeTerminalsChart.updateSeries([{ name: "Active Terminals", data: [] }], false);
+        if (outcomeDonutChart) outcomeDonutChart.updateSeries([0, 0, 0]);
+
+        const transactionCard = document.getElementById("transactionDetailsCard");
+        const transactionBody = document.getElementById("transactionDetailsBody");
+
+        if (transactionCard) transactionCard.style.display = "none";
+        if (transactionBody) transactionBody.innerHTML = "";
+    }
+
     function fetchTransactionsBySecond(second) {
         fetch("/transactions?second=" + second)
             .then(response => response.json())
@@ -627,345 +834,7 @@
             })
             .catch(error => console.error("Transaction fetch error:", error));
     }
-    window.addEventListener("resize", function () {
-        if (tpsChart) tpsChart.resize();
-        if (latencyChart) latencyChart.resize();
-        if (serverLatencyChart) serverLatencyChart.resize();
-        if (outcomeDonutChart) outcomeDonutChart.resize();
-        if (activeTerminalsChart) activeTerminalsChart.resize();
-    });
 
-    function initServerLatencyChart() {
-        const element = document.getElementById("serverLatencyChart");
-        if (!element) return;
-
-        serverLatencyChart = echarts.init(element);
-        serverLatencyChart.setOption(createLineChartOption("Server Latency", "Latency ms"));
-
-        serverLatencyChart.on("datazoom", function () {
-            if (ignoreNextDataZoomEvent) return;
-            autoFollowServerLatency = false;
-        });
-    }
-
-    function initOutcomeDonutChart() {
-        const element = document.getElementById("outcomeDonutChart");
-        if (!element) return;
-
-        outcomeDonutChart = echarts.init(element);
-
-        outcomeDonutChart.setOption({
-            tooltip: {
-                trigger: "item",
-                formatter: "{b}: {c} ({d}%)"
-            },
-            legend: {
-                bottom: 0
-            },
-            series: [
-                {
-                    name: "Outcome",
-                    type: "pie",
-                    radius: ["45%", "70%"],
-                    avoidLabelOverlap: true,
-                    label: {
-                        formatter: "{b}\n{d}%"
-                    },
-                    data: [
-                        { value: 0, name: "Success" },
-                        { value: 0, name: "Error" },
-                        { value: 0, name: "Timeout" }
-                    ]
-                }
-            ]
-        });
-    }
-    function updateOutcomeDonutChart(snapshot) {
-        if (!outcomeDonutChart) return;
-
-        const success = Number(snapshot.successTransactions || 0);
-        const error = Number(snapshot.errorTransactions || 0);
-        const timeout = Number(snapshot.timeoutTransactions || 0);
-
-        outcomeDonutChart.setOption({
-            series: [
-                {
-                    data: [
-                        { value: success, name: "Success" },
-                        { value: error, name: "Error" },
-                        { value: timeout, name: "Timeout" }
-                    ]
-                }
-            ]
-        });
-    }
-    function initActiveTerminalsChart() {
-        const element = document.getElementById("activeTerminalsChart");
-        if (!element) return;
-
-        activeTerminalsChart = echarts.init(element);
-        activeTerminalsChart.setOption(createLineChartOption("Active Terminals", "Terminals"));
-
-        activeTerminalsChart.on("datazoom", function () {
-            if (ignoreNextDataZoomEvent) return;
-            autoFollowActiveTerminals = false;
-        });
-    }
-    function followLatestActiveTerminals() {
-        autoFollowActiveTerminals = true;
-
-        if (!activeTerminalsChart || activeLastMinSecond === null || activeLastLatestSecond === null) return;
-
-        activeTerminalsChart.dispatchAction({
-            type: "dataZoom",
-            startValue: activeLastMinSecond,
-            endValue: activeLastLatestSecond
-        });
-    }
-    function updateRealtimeMetrics(delta) {
-        setText("liveTotal", delta.totalTransactions);
-        setText("liveSuccess", delta.successTransactions);
-        setText("liveError", delta.errorTransactions);
-        setText("liveTimeout", delta.timeoutTransactions);
-
-        setText("liveTps", Number(delta.tps).toFixed(2));
-        setText("liveAvgLatency", Number(delta.clientAvgLatency).toFixed(2));
-        setText("liveSuccessRate", Number(delta.successRate).toFixed(2));
-        setText("liveActiveTerminals", delta.activeTerminals);
-
-        const statusElement = document.getElementById("liveStatus");
-        if (statusElement) {
-            if (delta.running) {
-                statusElement.textContent = "RUNNING";
-                statusElement.className = "ok";
-            } else {
-                statusElement.textContent = "STOPPED";
-                statusElement.className = "bad";
-            }
-        }
-
-        appendDeltaPoint(delta);
-        updateChartsFromDelta();
-
-        updateOutcomeDonutChart({
-            successTransactions: delta.successTransactions,
-            errorTransactions: delta.errorTransactions,
-            timeoutTransactions: delta.timeoutTransactions
-        });
-    }
-    function appendDeltaPoint(delta) {
-        const second = Number(delta.second);
-
-        // avoid duplicate seconds
-        if (deltaTime.length > 0 && deltaTime[deltaTime.length - 1] === second) {
-            deltaTps[deltaTps.length - 1] = Number(delta.tps);
-            deltaClientAvgLatency[deltaClientAvgLatency.length - 1] = Number(delta.clientAvgLatency);
-            deltaClientP95Latency[deltaClientP95Latency.length - 1] = Number(delta.clientP95Latency);
-            deltaServerAvgLatency[deltaServerAvgLatency.length - 1] = Number(delta.serverAvgLatency);
-            deltaServerP95Latency[deltaServerP95Latency.length - 1] = Number(delta.serverP95Latency);
-            deltaActiveTerminals[deltaActiveTerminals.length - 1] = Number(delta.activeTerminals);
-            return;
-        }
-
-        deltaTime.push(second);
-        deltaTps.push(Number(delta.tps));
-        deltaClientAvgLatency.push(Number(delta.clientAvgLatency));
-        deltaClientP95Latency.push(Number(delta.clientP95Latency));
-        deltaServerAvgLatency.push(
-            delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency)
-        );
-        deltaServerP95Latency.push(Number(delta.serverP95Latency));
-        deltaActiveTerminals.push(Number(delta.activeTerminals));
-    }
-    function updateChartsFromDelta() {
-        const tpsData = deltaTime.map((second, index) => [
-            second,
-            deltaTps[index]
-        ]);
-
-        const clientAvgData = deltaTime.map((second, index) => [
-            second,
-            deltaClientAvgLatency[index]
-        ]);
-
-        const clientP95Data = deltaTime.map((second, index) => [
-            second,
-            deltaClientP95Latency[index]
-        ]);
-
-        const serverAvgData = deltaTime.map((second, index) => [
-            second,
-            deltaServerAvgLatency[index]
-        ]);
-
-        const serverP95Data = deltaTime.map((second, index) => [
-            second,
-            deltaServerP95Latency[index]
-        ]);
-
-        const activeData = deltaTime.map((second, index) => [
-            second,
-            deltaActiveTerminals[index]
-        ]);
-
-        updateTpsChartWithData(tpsData);
-        updateClientLatencyChartWithData(clientAvgData, clientP95Data);
-        updateServerLatencyChartWithData(serverAvgData, serverP95Data);
-        updateActiveTerminalsChartWithData(activeData);
-    }
-    function updateTpsChartWithData(data) {
-        if (!tpsChart) return;
-
-        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-        lastMinSecond = minSecond;
-        lastLatestSecond = latestSecond;
-
-        tpsChart.setOption({
-            series: [{
-                name: "TPS",
-                type: "line",
-                data: data,
-                symbol: "circle",
-                symbolSize: 10,
-                showSymbol: true,
-                smooth: 0.2,
-                clip: false
-            }]
-        });
-
-        if (autoFollowTps) {
-            ignoreNextDataZoomEvent = true;
-            tpsChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
-        }
-    }
-    function updateServerLatencyChartWithData(avgData, p95Data) {
-        if (!serverLatencyChart) return;
-
-        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-        serverLatencyChart.setOption({
-            series: [
-                {
-                    name: "Server Avg Latency",
-                    type: "line",
-                    data: avgData,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    clip: false
-                },
-                {
-                    name: "Server P95 Latency",
-                    type: "line",
-                    data: p95Data,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    lineStyle: { type: "dashed" },
-                    clip: false
-                }
-            ]
-        });
-
-        if (autoFollowServerLatency) {
-            ignoreNextDataZoomEvent = true;
-            serverLatencyChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
-        }
-    }
-    function updateActiveTerminalsChartWithData(data) {
-        if (!activeTerminalsChart) return;
-
-        const latestSecond = data.length > 0 ? data[data.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-        activeLastMinSecond = minSecond;
-        activeLastLatestSecond = latestSecond;
-
-        activeTerminalsChart.setOption({
-            series: [{
-                name: "Active Terminals",
-                type: "line",
-                step: "end",
-                data: data,
-                symbol: "circle",
-                symbolSize: 8,
-                showSymbol: true,
-                smooth: false,
-                clip: false
-            }]
-        });
-
-        if (autoFollowActiveTerminals) {
-            ignoreNextDataZoomEvent = true;
-            activeTerminalsChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-            setTimeout(() => ignoreNextDataZoomEvent = false, 0);
-        }
-    }
-    function updateClientLatencyChartWithData(avgData, p95Data) {
-        if (!latencyChart) return;
-
-        const latestSecond = avgData.length > 0 ? avgData[avgData.length - 1][0] : DEFAULT_VISIBLE_SECONDS;
-        const minSecond = Math.max(0, latestSecond - DEFAULT_VISIBLE_SECONDS);
-
-        latencyChart.setOption({
-            series: [
-                {
-                    name: "Avg Latency",
-                    type: "line",
-                    data: avgData,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    clip: false
-                },
-                {
-                    name: "P95 Latency",
-                    type: "line",
-                    data: p95Data,
-                    symbol: "circle",
-                    symbolSize: 10,
-                    showSymbol: true,
-                    smooth: 0.2,
-                    lineStyle: { type: "dashed" },
-                    clip: false
-                }
-            ]
-        });
-
-        if (autoFollowClientLatency) {
-            ignoreNextDataZoomEvent = true;
-
-            latencyChart.dispatchAction({
-                type: "dataZoom",
-                startValue: minSecond,
-                endValue: latestSecond
-            });
-
-            setTimeout(() => {
-                ignoreNextDataZoomEvent = false;
-            }, 0);
-        }
-    }
     function renderTransactionsTable(second, transactions) {
         const card = document.getElementById("transactionDetailsCard");
         const selectedSecond = document.getElementById("selectedSecond");
@@ -979,7 +848,7 @@
         if (!transactions || transactions.length === 0) {
             body.innerHTML = `
             <tr>
-                <td colspan="7">No transactions found for this second.</td>
+                <td colspan="9">No transactions found for this second.</td>
             </tr>
         `;
             card.style.display = "block";
@@ -988,17 +857,17 @@
 
         transactions.forEach((tx, index) => {
             const row = document.createElement("tr");
+
             row.innerHTML = `
-            <td>${index+1}</td>
+            <td>${index + 1}</td>
             <td>${tx.terminalId || ""}</td>
             <td>${tx.stan || ""}</td>
             <td>${tx.mti || ""}</td>
-<td style="color:${tx.status === 'ERROR' ? 'red' : 'green'}">
-    ${tx.status}
-</td>            <td>${tx.responseCode || ""}</td>
-            <td>${tx.latencyMillis || 0}</td>
+            <td style="color:${tx.status === "ERROR" ? "red" : "green"}">${tx.status || ""}</td>
+            <td>${tx.responseCode || ""}</td>
+            <td>${tx.latencyMillis ?? 0}</td>
             <td>${tx.serverLatencyMillis ?? "-"}</td>
-            <td>${new Date(tx.timestamp).toLocaleTimeString()}</td>
+            <td>${tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : ""}</td>
         `;
 
             body.appendChild(row);
@@ -1006,7 +875,58 @@
 
         card.style.display = "block";
     }
-</script>
 
+    function updateStatus(running) {
+        const statusElement = document.getElementById("liveStatus");
+        if (!statusElement) return;
+
+        if (running) {
+            statusElement.textContent = "RUNNING";
+            statusElement.className = "ok";
+        } else {
+            statusElement.textContent = "STOPPED";
+            statusElement.className = "bad";
+        }
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    }
+
+    function toggleRampUpFields() {
+        const testMode = document.getElementById("testMode").value;
+        const rampUpFields = document.getElementById("rampUpFields");
+
+        rampUpFields.style.display =
+            testMode === "RAMP_UP_TPS_PER_TERMINAL" ? "block" : "none";
+    }
+
+    const launchSelect = document.getElementById("launchStrategy");
+    const sequentialDiv = document.getElementById("sequentialOptions");
+
+    function toggleSequentialOptions() {
+        sequentialDiv.style.display =
+            launchSelect.value === "SEQUENTIAL" ? "block" : "none";
+    }
+
+    launchSelect.addEventListener("change", toggleSequentialOptions);
+
+    const testModeSelect = document.getElementById("testMode");
+    const rampUpFields = document.getElementById("rampUpFields");
+    const linearOptions = document.getElementById("linearOptions");
+
+    function toggleTestModeOptions() {
+        const mode = testModeSelect.value;
+
+        rampUpFields.style.display =
+            mode === "RAMP_UP_TPS_PER_TERMINAL" ? "block" : "none";
+
+        linearOptions.style.display =
+            mode === "LINEAR_TPS_PER_TERMINAL" ? "block" : "none";
+    }
+
+    testModeSelect.addEventListener("change", toggleTestModeOptions);
+</script>
 </body>
 </html>

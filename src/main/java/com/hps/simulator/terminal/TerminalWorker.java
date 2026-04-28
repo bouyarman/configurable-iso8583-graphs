@@ -51,16 +51,16 @@ public class TerminalWorker implements Runnable {
 
     @Override
     public void run() {
+        final long start = System.currentTimeMillis();
+
         try {
-            long elapsedMillis = System.currentTimeMillis() - simulationStartMillis;
+            long elapsedMillis = start - simulationStartMillis;
             if (elapsedMillis >= request.getDurationSeconds() * 1000L) {
                 return;
             }
             if (!isTerminalActive()) {
                 return;
             }
-
-            long start = System.currentTimeMillis();
 
             IsoMessage requestMessage = terminal.generateTransaction();
             byte[] requestBytes = packer.pack(requestMessage);
@@ -100,14 +100,15 @@ public class TerminalWorker implements Runnable {
             metricsCollector.recordTransactionResult(result);
 
         } catch (Exception e) {
+            long latency = System.currentTimeMillis() - start;
             TransactionResult result = new TransactionResult(
                     terminal.getTerminalId(),
                     null,
                     null,
                     TransactionStatus.TIMEOUT,
                     null,
-                    0,
-                    System.currentTimeMillis()
+                    latency,
+                    start
             );
             metricsCollector.recordTransactionResult(result);
         }

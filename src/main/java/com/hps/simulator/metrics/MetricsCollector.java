@@ -19,7 +19,11 @@ public class MetricsCollector {
     private final Map<Long, List<TransactionResult>> transactionsBySecond =
             new ConcurrentHashMap<>();
     public MetricsCollector() {
-        this.startTimeMillis = System.currentTimeMillis();
+        this(System.currentTimeMillis());
+    }
+
+    public MetricsCollector(long sharedStartTimeMillis) {
+        this.startTimeMillis = sharedStartTimeMillis;
         this.endTimeMillis = 0L;
     }
 
@@ -111,19 +115,4 @@ public class MetricsCollector {
         return points;
     }
 
-    public double getAverageLatencyFromTimelineWeighted() {
-        long totalCount = 0;
-        long totalLatencySum = 0;
-
-        for (SecondMetricsBucket bucket : timeline.values()) {
-            totalCount += bucket.getTotal();
-            totalLatencySum += bucket.getTotalLatency();
-        }
-
-        if (totalCount == 0) {
-            return 0.0;
-        }
-
-        return totalLatencySum * 1.0 / totalCount;
-    }
 }
