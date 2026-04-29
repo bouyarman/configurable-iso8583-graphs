@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<BaseMessage	Description="Network Management Advice">
+
+<MessageInfo>
+<MsgType Value="1804"/>
+<MsgHeader Value="ISO0416211111000"/>
+ 
+ <Field Number="007"	Value="0110222751"/>				
+ <Field Number="011"	Value="000301"/>                    
+ <Field Number="012"	Value="182751"/>                    								
+ <Field Number="017"	Value="1031"/>                      
+ <Field Number="024"	Value="821"/>                       
+ <Field Number="037"	Value="501022000301"/>              
+ <Field Number="041"	Value="00000077"/>                  
+ <Field Number="042"	Value="MPOS001"/>           
+ <Field Number="053"	Value="010100000"/>                 
+ <Field Number="063"	Value="0000000000000000000000000"/> 
+</MessageInfo>
+
+</BaseMessage>

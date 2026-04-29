@@ -42,7 +42,19 @@ public class TestSwitch {
         } else if ("1100".equals(request.getMti())) {
             String responseCode = resolveResponseCode(request);
             response = build1100Response(request, responseCode);
-        } else {
+        } else if ("1220".equals(request.getMti())) {
+        response = build1220Response(request, "000");
+
+    } else if ("1420".equals(request.getMti())) {
+        response = build1420Response(request, "000");
+
+    } else if ("1520".equals(request.getMti())) {
+        response = build1520Response(request, "000");
+
+    } else if ("1804".equals(request.getMti())) {
+        response = build1804Response(request, "000");
+    }
+        else {
             response = buildGenericErrorResponse(request, "096");
         }
 
@@ -109,7 +121,6 @@ public class TestSwitch {
         response.setHeader(request.getHeader());
         response.setMti("1110");
 
-        // copy the most useful fields for a first dynamic preauth response
         copyIfPresent(request, response, 2);
         copyIfPresent(request, response, 3);
         copyIfPresent(request, response, 4);
@@ -130,7 +141,57 @@ public class TestSwitch {
 
         return response;
     }
+    private IsoMessage build1220Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("1230");
+        copyIfPresent(request, response, 3);
+        copyIfPresent(request, response, 4);
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        response.setField(39, responseCode);
+        return response;
+    }
 
+    private IsoMessage build1420Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("1430");
+        copyIfPresent(request, response, 3);
+        copyIfPresent(request, response, 4);
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        response.setField(39, responseCode);
+        return response;
+    }
+
+    private IsoMessage build1520Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("1530");
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 41);
+        copyIfPresent(request, response, 42);
+        response.setField(39, responseCode);
+        return response;
+    }
+
+    private IsoMessage build1804Response(IsoMessage request, String responseCode) {
+        IsoMessage response = new IsoMessage();
+        response.setHeader(request.getHeader());
+        response.setMti("1814");
+        copyIfPresent(request, response, 7);
+        copyIfPresent(request, response, 11);
+        copyIfPresent(request, response, 24);
+        copyIfPresent(request, response, 41);
+        response.setField(39, responseCode);
+        return response;
+    }
     private IsoMessage buildGenericErrorResponse(IsoMessage request, String responseCode) {
         IsoMessage response = new IsoMessage();
         response.setHeader(request.getHeader());

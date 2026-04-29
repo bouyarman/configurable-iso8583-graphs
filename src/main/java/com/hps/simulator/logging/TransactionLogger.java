@@ -50,6 +50,7 @@ public final class TransactionLogger {
                 writer.println(timestamp() + " " + message);
                 writer.flush();
                 writer.close();
+
             } catch (IOException e) {
                 e.printStackTrace();
             }

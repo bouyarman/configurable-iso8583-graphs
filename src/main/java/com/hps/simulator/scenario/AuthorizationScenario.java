@@ -18,7 +18,9 @@ public class AuthorizationScenario {
                                           TerminalProfile profile) {
         IsoMessage msg = copy(template);
 
-        msg.setField(4, formatAmount(amountInCents));   // DE4
+        if (template.getField(4) != null) {
+            msg.setField(4, formatAmount(amountInCents));
+        }
         msg.setField(7, generateDe7());                 // DE7
         msg.setField(11, generateStan());               // DE11
 

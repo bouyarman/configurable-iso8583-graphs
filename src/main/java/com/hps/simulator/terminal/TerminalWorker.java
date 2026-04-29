@@ -1,6 +1,7 @@
 package com.hps.simulator.terminal;
 
 import com.hps.simulator.UI.SimulationRequest;
+import com.hps.simulator.logging.TransactionLogger;
 import com.hps.simulator.metrics.MetricsCollector;
 import com.hps.simulator.metrics.ServerMetricsCollector;
 import com.hps.simulator.metrics.TransactionResult;
@@ -64,9 +65,46 @@ public class TerminalWorker implements Runnable {
 
             IsoMessage requestMessage = terminal.generateTransaction();
             byte[] requestBytes = packer.pack(requestMessage);
-            byte[] responseBytes = client.sendAndReceive(requestBytes);
+            if (terminal.isLoggingEnabled()) {
+                String log = String.format(
+                        "MTI: %s\n" +
+                                "Processing Code (DE3): %s\n" +
+                                "Amount (DE4): %s\n" +
+                                "Transmission Date (DE7): %s\n" +
+                                "STAN (DE11): %s\n" +
+                                "Terminal ID (DE41): %s\n" +
+                                "Merchant ID (DE42): %s\n" +
+                                "----------------------------------------",
+                        requestMessage.getMti(),
+                        requestMessage.getField(3),
+                        requestMessage.getField(4),
+                        requestMessage.getField(7),
+                        requestMessage.getField(11),
+                        requestMessage.getField(41),
+                        requestMessage.getField(42)
+                );
+                TransactionLogger.logRequest(log);
+            }
 
+            byte[] responseBytes = client.sendAndReceive(requestBytes);
             IsoMessage response = unpacker.unpack(responseBytes);
+            if (terminal.isLoggingEnabled()) {
+                String log = String.format(
+                        "MTI: %s\n" +
+                                "STAN (DE11): %s\n" +
+                                "Response Code (DE39): %s\n" +
+                                "Authorization Code (DE38): %s\n" +
+                                "Transmission Date (DE7): %s\n" +
+                                "----------------------------------------",
+                        response.getMti(),
+                        response.getField(11),
+                        response.getField(39),
+                        response.getField(38),
+                        response.getField(7)
+                );
+                TransactionLogger.logResponse(log);
+            }
+
             long latency = System.currentTimeMillis() - start;
 
             String responseCode = response.getField(39);
