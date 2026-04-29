@@ -1,6 +1,6 @@
 package com.hps.simulator.terminal;
 
-import com.hps.simulator.scenario.AuthorizationScenario;
+import com.hps.simulator.scenario.IsoMessageFactory;
 import com.hps.simulator.iso.IsoMessage;
 import com.hps.simulator.profile.TerminalProfile;
 
@@ -8,7 +8,7 @@ public class VirtualTerminal {
 
     private final String terminalId;
     private int tps;
-    private final AuthorizationScenario scenario;
+    private final IsoMessageFactory scenario;
 
     private TerminalProfile profile;
     private boolean loggingEnabled;
@@ -21,7 +21,7 @@ public class VirtualTerminal {
 
         this.terminalId = terminalId;
         this.tps = tps;
-        this.scenario = new AuthorizationScenario();
+        this.scenario = new IsoMessageFactory();
     }
 
     public IsoMessage generateTransaction() {

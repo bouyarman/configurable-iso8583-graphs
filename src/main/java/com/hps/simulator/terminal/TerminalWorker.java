@@ -138,6 +138,8 @@ public class TerminalWorker implements Runnable {
             metricsCollector.recordTransactionResult(result);
 
         } catch (Exception e) {
+            e.printStackTrace();
+
             long latency = System.currentTimeMillis() - start;
             TransactionResult result = new TransactionResult(
                     terminal.getTerminalId(),

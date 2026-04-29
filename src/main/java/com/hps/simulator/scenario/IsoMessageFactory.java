@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AuthorizationScenario {
+public class IsoMessageFactory {
 
     private static final AtomicInteger STAN_COUNTER = new AtomicInteger(1);
 
@@ -23,7 +23,7 @@ public class AuthorizationScenario {
         }
         msg.setField(7, generateDe7());                 // DE7
         msg.setField(11, generateStan());               // DE11
-
+        msg.setField(12, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmmss")));
         if (terminalId != null) {
             msg.setField(41, fitRight(terminalId, 8));
         }
