@@ -54,4 +54,10 @@ public class SimulationSession {
             session.getClient().close();
         }
     }
+
+    private final long startTimeMillis = System.currentTimeMillis();
+
+    public long getStartTimeMillis() {
+        return startTimeMillis;
+    }
 }

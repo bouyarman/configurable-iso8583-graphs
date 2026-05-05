@@ -354,9 +354,19 @@ public class SimulationRunner {
 
         List<SecondMetricsPoint> points = metricsCollector.getTimelinePoints();
 
-        SecondMetricsPoint lastPoint = points.isEmpty() ? null : points.get(points.size() - 1);
+        long latestSecond = points.isEmpty() ? 0 : points.get(points.size() - 1).getSecond();
+        long completedSecond = Math.max(0, latestSecond - 1);
 
-        long second = lastPoint != null ? lastPoint.getSecond() : 0;
+        SecondMetricsPoint lastPoint = null;
+
+        for (SecondMetricsPoint point : points) {
+            if (point.getSecond() == completedSecond) {
+                lastPoint = point;
+                break;
+            }
+        }
+
+        long second = completedSecond;
 
         delta.setSecond(second);
 
