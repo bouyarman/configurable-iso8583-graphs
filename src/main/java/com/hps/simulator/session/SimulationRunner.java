@@ -122,13 +122,15 @@ public class SimulationRunner {
         long simulationStartMillis = System.currentTimeMillis();
         int totalTerminals = session.getConnectedTerminals().size();
 
+        ScheduledExecutorService scheduler =
+                Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
+
         for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds && !stopRequested; elapsedSeconds++) {
             int stepIndex = elapsedSeconds / rampIntervalSeconds;
             int currentTps = initialTps + (stepIndex * rampStepTps);
             currentTps = Math.max(1, currentTps);
 
-            ScheduledExecutorService scheduler =
-                    Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
+
 
             for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
                 scheduler.schedule(
@@ -154,9 +156,10 @@ public class SimulationRunner {
             for (int i = 0; i < 10 && !stopRequested; i++) {
                 Thread.sleep(100L);
             }
-            scheduler.shutdownNow();
-            scheduler.awaitTermination(5, TimeUnit.SECONDS);
         }
+
+        scheduler.shutdownNow();
+        scheduler.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     private void runLinearSimulation(SimulationSession session,
@@ -171,6 +174,10 @@ public class SimulationRunner {
         long simulationStartMillis = System.currentTimeMillis();
         int totalTerminals = session.getConnectedTerminals().size();
 
+
+        ScheduledExecutorService scheduler =
+                Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
+
         for (int elapsedSeconds = 0; elapsedSeconds < totalDurationSeconds && !stopRequested; elapsedSeconds++) {
             double progress = (totalDurationSeconds <= 1)
                     ? 1.0
@@ -181,8 +188,6 @@ public class SimulationRunner {
             );
             currentTps = Math.min(targetTps, Math.max(initialTps, currentTps));
 
-            ScheduledExecutorService scheduler =
-                    Executors.newScheduledThreadPool(session.getConnectedTerminals().size());
 
             for (ConnectedTerminalSession connectedSession : session.getConnectedTerminals()) {
                 scheduler.schedule(
@@ -208,9 +213,10 @@ public class SimulationRunner {
                 Thread.sleep(100L);
             }
 
-            scheduler.shutdownNow();
-            scheduler.awaitTermination(5, TimeUnit.SECONDS);
         }
+
+        scheduler.shutdownNow();
+        scheduler.awaitTermination(5, TimeUnit.SECONDS);
     }
 
 

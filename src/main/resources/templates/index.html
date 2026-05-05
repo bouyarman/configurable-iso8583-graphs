@@ -325,17 +325,16 @@
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 
 <script>
-
-    let tpsUserMin = null;
-    let tpsUserMax = null;
-    let suppressTpsZoomEvent = false;
-
     const DEFAULT_VISIBLE_SECONDS = 45;
 
     let autoFollowTps = true;
     let autoFollowClientLatency = true;
     let autoFollowServerLatency = true;
     let autoFollowActiveTerminals = true;
+
+    let tpsUserMin = null;
+    let tpsUserMax = null;
+    let suppressTpsZoomEvent = false;
 
     let tpsChart = null;
     let latencyChart = null;
@@ -362,9 +361,7 @@
 
         connectLiveMetricsWebSocket();
 
-        toggleTestModeOptions();
-        toggleRampUpFields();
-        toggleSequentialOptions();
+        initFormOptions();
     });
 
     function createLineChartOptions(title, yTitle, series, onPointClick, curve = "smooth") {
@@ -389,7 +386,7 @@
                     }
                 },
                 events: {
-                    dataPointSelection: function(event, chartContext, config) {
+                    dataPointSelection: function (event, chartContext, config) {
                         if (!onPointClick) return;
 
                         const serie = config.w.config.series[config.seriesIndex];
@@ -401,27 +398,23 @@
                         onPointClick(point.x);
                     },
 
-                    zoomed: function(chartContext, { xaxis }) {
-                        if (title === "TPS") {
-                            if (suppressTpsZoomEvent) return;
+                    zoomed: function (chartContext, { xaxis }) {
+                        if (title !== "TPS" || suppressTpsZoomEvent) return;
 
-                            autoFollowTps = false;
-                            tpsUserMin = xaxis.min;
-                            tpsUserMax = xaxis.max;
-                        }
+                        autoFollowTps = false;
+                        tpsUserMin = xaxis.min;
+                        tpsUserMax = xaxis.max;
                     },
 
-                    scrolled: function(chartContext, { xaxis }) {
-                        if (title === "TPS") {
-                            if (suppressTpsZoomEvent) return;
+                    scrolled: function (chartContext, { xaxis }) {
+                        if (title !== "TPS" || suppressTpsZoomEvent) return;
 
-                            autoFollowTps = false;
-                            tpsUserMin = xaxis.min;
-                            tpsUserMax = xaxis.max;
-                        }
+                        autoFollowTps = false;
+                        tpsUserMin = xaxis.min;
+                        tpsUserMax = xaxis.max;
                     }
                 }
-                },
+            },
             series: series,
             xaxis: {
                 type: "numeric",
@@ -445,12 +438,7 @@
             }
         };
     }
-    function disableAutoFollow(title) {
-        if (title === "TPS") autoFollowTps = false;
-        if (title === "Client Latency") autoFollowClientLatency = false;
-        if (title === "Server Latency") autoFollowServerLatency = false;
-        if (title === "Active Terminals") autoFollowActiveTerminals = false;
-    }
+
     function initTpsChart() {
         const element = document.getElementById("tpsChart");
         if (!element) return;
@@ -539,8 +527,6 @@
         stompClient = Stomp.over(socket);
 
         stompClient.connect({}, function () {
-            console.log("Connected to live metrics WebSocket");
-
             stompClient.subscribe("/topic/live-metrics", function (message) {
                 const snapshot = JSON.parse(message.body);
                 updateSnapshotKPI(snapshot);
@@ -551,7 +537,7 @@
                 updateRealtimeMetrics(delta);
             });
         }, function (error) {
-            console.error("WebSocket connection error", error);
+            console.error("WebSocket connection error:", error);
         });
     }
 
@@ -567,7 +553,36 @@
         setText("liveActiveTerminals", snapshot.activeTerminals);
 
         updateStatus(snapshot.running);
-        updateOutcomeDonutChart(snapshot.successTransactions, snapshot.errorTransactions, snapshot.timeoutTransactions);
+        updateOutcomeDonutChart(
+            snapshot.successTransactions,
+            snapshot.errorTransactions,
+            snapshot.timeoutTransactions
+        );
+
+        if (snapshot.running === false && snapshot.time && snapshot.tpsTimeline) {
+            replaceChartsFromFinalSnapshot(snapshot);
+        }
+    }
+
+    function replaceChartsFromFinalSnapshot(snapshot) {
+        deltaTime = snapshot.time.map(Number);
+        deltaTps = snapshot.tpsTimeline.map(Number);
+        deltaClientAvgLatency = snapshot.latencyTimeline.map(Number);
+        deltaClientP95Latency = snapshot.p95LatencyTimeline.map(Number);
+
+        deltaServerAvgLatency = snapshot.serverLatencyTimeline
+            ? snapshot.serverLatencyTimeline.map(Number)
+            : [];
+
+        deltaServerP95Latency = snapshot.serverP95LatencyTimeline
+            ? snapshot.serverP95LatencyTimeline.map(Number)
+            : [];
+
+        deltaActiveTerminals = snapshot.activeTerminalsTimeline
+            ? snapshot.activeTerminalsTimeline.map(Number)
+            : [];
+
+        updateChartsFromDelta();
     }
 
     function updateRealtimeMetrics(delta) {
@@ -581,25 +596,22 @@
         setText("liveActiveTerminals", delta.activeTerminals);
 
         updateStatus(delta.running);
+        updateOutcomeDonutChart(
+            delta.successTransactions,
+            delta.errorTransactions,
+            delta.timeoutTransactions
+        );
 
         appendDeltaPoint(delta);
         updateChartsFromDelta();
-
-        updateOutcomeDonutChart(delta.successTransactions, delta.errorTransactions, delta.timeoutTransactions);
     }
 
     function appendDeltaPoint(delta) {
         const second = Number(delta.second);
+        const existingIndex = deltaTime.indexOf(second);
 
-        if (deltaTime.length > 0 && deltaTime[deltaTime.length - 1] === second) {
-            const i = deltaTime.length - 1;
-
-            deltaTps[i] = Number(delta.tps);
-            deltaClientAvgLatency[i] = Number(delta.clientAvgLatency);
-            deltaClientP95Latency[i] = Number(delta.clientP95Latency);
-            deltaServerAvgLatency[i] = delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency);
-            deltaServerP95Latency[i] = delta.serverP95Latency == null ? null : Number(delta.serverP95Latency);
-            deltaActiveTerminals[i] = Number(delta.activeTerminals);
+        if (existingIndex !== -1) {
+            updateDeltaAtIndex(existingIndex, delta);
             return;
         }
 
@@ -607,9 +619,22 @@
         deltaTps.push(Number(delta.tps));
         deltaClientAvgLatency.push(Number(delta.clientAvgLatency));
         deltaClientP95Latency.push(Number(delta.clientP95Latency));
-        deltaServerAvgLatency.push(delta.serverAvgLatency == null ? null : Number(delta.serverAvgLatency));
-        deltaServerP95Latency.push(delta.serverP95Latency == null ? null : Number(delta.serverP95Latency));
+        deltaServerAvgLatency.push(toNullableNumber(delta.serverAvgLatency));
+        deltaServerP95Latency.push(toNullableNumber(delta.serverP95Latency));
         deltaActiveTerminals.push(Number(delta.activeTerminals));
+    }
+
+    function updateDeltaAtIndex(index, delta) {
+        deltaTps[index] = Number(delta.tps);
+        deltaClientAvgLatency[index] = Number(delta.clientAvgLatency);
+        deltaClientP95Latency[index] = Number(delta.clientP95Latency);
+        deltaServerAvgLatency[index] = toNullableNumber(delta.serverAvgLatency);
+        deltaServerP95Latency[index] = toNullableNumber(delta.serverP95Latency);
+        deltaActiveTerminals[index] = Number(delta.activeTerminals);
+    }
+
+    function toNullableNumber(value) {
+        return value == null ? null : Number(value);
     }
 
     function updateChartsFromDelta() {
@@ -638,32 +663,31 @@
     function updateTpsChartWithData() {
         if (!tpsChart) return;
 
-        const data = toApexData(deltaTps);
-
         tpsChart.updateSeries([
-            { name: "TPS", data: data }
+            { name: "TPS", data: toApexData(deltaTps) }
         ], false);
 
         const range = latestRange();
 
         if (autoFollowTps && range) {
-            suppressTpsZoomEvent = true;
-            tpsChart.zoomX(range.minSecond, range.latestSecond);
-
-            setTimeout(() => {
-                suppressTpsZoomEvent = false;
-            }, 0);
+            zoomTpsWithoutTrigger(range.minSecond, range.latestSecond);
+            return;
         }
 
         if (!autoFollowTps && tpsUserMin !== null && tpsUserMax !== null) {
-            suppressTpsZoomEvent = true;
-            tpsChart.zoomX(tpsUserMin, tpsUserMax);
-
-            setTimeout(() => {
-                suppressTpsZoomEvent = false;
-            }, 0);
+            zoomTpsWithoutTrigger(tpsUserMin, tpsUserMax);
         }
     }
+
+    function zoomTpsWithoutTrigger(min, max) {
+        suppressTpsZoomEvent = true;
+        tpsChart.zoomX(min, max);
+
+        setTimeout(() => {
+            suppressTpsZoomEvent = false;
+        }, 0);
+    }
+
     function updateClientLatencyChartWithData() {
         if (!latencyChart) return;
 
@@ -672,10 +696,7 @@
             { name: "Client P95 Latency", data: toApexData(deltaClientP95Latency) }
         ], false);
 
-        if (autoFollowClientLatency) {
-            const range = latestRange();
-            if (range) latencyChart.zoomX(range.minSecond, range.latestSecond);
-        }
+        if (autoFollowClientLatency) goLive(latencyChart);
     }
 
     function updateServerLatencyChartWithData() {
@@ -686,10 +707,7 @@
             { name: "Server P95 Latency", data: toApexData(deltaServerP95Latency) }
         ], false);
 
-        if (autoFollowServerLatency) {
-            const range = latestRange();
-            if (range) serverLatencyChart.zoomX(range.minSecond, range.latestSecond);
-        }
+        if (autoFollowServerLatency) goLive(serverLatencyChart);
     }
 
     function updateActiveTerminalsChartWithData() {
@@ -699,10 +717,7 @@
             { name: "Active Terminals", data: toApexData(deltaActiveTerminals) }
         ], false);
 
-        if (autoFollowActiveTerminals) {
-            const range = latestRange();
-            if (range) activeTerminalsChart.zoomX(range.minSecond, range.latestSecond);
-        }
+        if (autoFollowActiveTerminals) goLive(activeTerminalsChart);
     }
 
     function updateOutcomeDonutChart(success, error, timeout) {
@@ -723,12 +738,7 @@
         const range = latestRange();
         if (!range || !tpsChart) return;
 
-        suppressTpsZoomEvent = true;
-        tpsChart.zoomX(range.minSecond, range.latestSecond);
-
-        setTimeout(() => {
-            suppressTpsZoomEvent = false;
-        }, 0);
+        zoomTpsWithoutTrigger(range.minSecond, range.latestSecond);
     }
 
     function followLatestClientLatency() {
@@ -797,6 +807,9 @@
         autoFollowServerLatency = true;
         autoFollowActiveTerminals = true;
 
+        tpsUserMin = null;
+        tpsUserMax = null;
+
         deltaTime = [];
         deltaTps = [];
         deltaClientAvgLatency = [];
@@ -805,17 +818,33 @@
         deltaServerP95Latency = [];
         deltaActiveTerminals = [];
 
-        if (tpsChart) tpsChart.updateSeries([{ name: "TPS", data: [] }], false);
-        if (latencyChart) latencyChart.updateSeries([
-            { name: "Client Avg Latency", data: [] },
-            { name: "Client P95 Latency", data: [] }
-        ], false);
-        if (serverLatencyChart) serverLatencyChart.updateSeries([
-            { name: "Server Avg Latency", data: [] },
-            { name: "Server P95 Latency", data: [] }
-        ], false);
-        if (activeTerminalsChart) activeTerminalsChart.updateSeries([{ name: "Active Terminals", data: [] }], false);
-        if (outcomeDonutChart) outcomeDonutChart.updateSeries([0, 0, 0]);
+        if (tpsChart) {
+            tpsChart.updateSeries([{ name: "TPS", data: [] }], false);
+        }
+
+        if (latencyChart) {
+            latencyChart.updateSeries([
+                { name: "Client Avg Latency", data: [] },
+                { name: "Client P95 Latency", data: [] }
+            ], false);
+        }
+
+        if (serverLatencyChart) {
+            serverLatencyChart.updateSeries([
+                { name: "Server Avg Latency", data: [] },
+                { name: "Server P95 Latency", data: [] }
+            ], false);
+        }
+
+        if (activeTerminalsChart) {
+            activeTerminalsChart.updateSeries([
+                { name: "Active Terminals", data: [] }
+            ], false);
+        }
+
+        if (outcomeDonutChart) {
+            outcomeDonutChart.updateSeries([0, 0, 0]);
+        }
 
         const transactionCard = document.getElementById("transactionDetailsCard");
         const transactionBody = document.getElementById("transactionDetailsBody");
@@ -827,9 +856,7 @@
     function fetchTransactionsBySecond(second) {
         fetch("/transactions?second=" + second)
             .then(response => response.json())
-            .then(data => {
-                renderTransactionsTable(second, data);
-            })
+            .then(data => renderTransactionsTable(second, data))
             .catch(error => console.error("Transaction fetch error:", error));
     }
 
@@ -845,10 +872,10 @@
 
         if (!transactions || transactions.length === 0) {
             body.innerHTML = `
-            <tr>
-                <td colspan="9">No transactions found for this second.</td>
-            </tr>
-        `;
+                <tr>
+                    <td colspan="9">No transactions found for this second.</td>
+                </tr>
+            `;
             card.style.display = "block";
             return;
         }
@@ -857,16 +884,16 @@
             const row = document.createElement("tr");
 
             row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${tx.terminalId || ""}</td>
-            <td>${tx.stan || ""}</td>
-            <td>${tx.mti || ""}</td>
-            <td style="color:${tx.status === "ERROR" ? "red" : "green"}">${tx.status || ""}</td>
-            <td>${tx.responseCode || ""}</td>
-            <td>${tx.latencyMillis ?? 0}</td>
-            <td>${tx.serverLatencyMillis ?? "-"}</td>
-            <td>${tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : ""}</td>
-        `;
+                <td>${index + 1}</td>
+                <td>${tx.terminalId || ""}</td>
+                <td>${tx.stan || ""}</td>
+                <td>${tx.mti || ""}</td>
+                <td style="color:${tx.status === "ERROR" ? "red" : "green"}">${tx.status || ""}</td>
+                <td>${tx.responseCode || ""}</td>
+                <td>${tx.latencyMillis ?? 0}</td>
+                <td>${tx.serverLatencyMillis ?? "-"}</td>
+                <td>${tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : ""}</td>
+            `;
 
             body.appendChild(row);
         });
@@ -892,39 +919,46 @@
         if (element) element.textContent = value;
     }
 
-    function toggleRampUpFields() {
-        const testMode = document.getElementById("testMode").value;
+    function initFormOptions() {
+        const testModeSelect = document.getElementById("testMode");
         const rampUpFields = document.getElementById("rampUpFields");
+        const linearOptions = document.getElementById("linearOptions");
+        const launchSelect = document.getElementById("launchStrategy");
+        const sequentialOptions = document.getElementById("sequentialOptions");
 
-        rampUpFields.style.display =
-            testMode === "RAMP_UP_TPS_PER_TERMINAL" ? "block" : "none";
+        function updateTestModeOptions() {
+            if (!testModeSelect) return;
+
+            const mode = testModeSelect.value;
+
+            if (rampUpFields) {
+                rampUpFields.style.display =
+                    mode === "RAMP_UP_TPS_PER_TERMINAL" ? "block" : "none";
+            }
+
+            if (linearOptions) {
+                linearOptions.style.display =
+                    mode === "LINEAR_TPS_PER_TERMINAL" ? "block" : "none";
+            }
+        }
+
+        function updateSequentialOptions() {
+            if (!launchSelect || !sequentialOptions) return;
+
+            sequentialOptions.style.display =
+                launchSelect.value === "SEQUENTIAL" ? "block" : "none";
+        }
+
+        if (testModeSelect) {
+            testModeSelect.addEventListener("change", updateTestModeOptions);
+            updateTestModeOptions();
+        }
+
+        if (launchSelect) {
+            launchSelect.addEventListener("change", updateSequentialOptions);
+            updateSequentialOptions();
+        }
     }
-
-    const launchSelect = document.getElementById("launchStrategy");
-    const sequentialDiv = document.getElementById("sequentialOptions");
-
-    function toggleSequentialOptions() {
-        sequentialDiv.style.display =
-            launchSelect.value === "SEQUENTIAL" ? "block" : "none";
-    }
-
-    launchSelect.addEventListener("change", toggleSequentialOptions);
-
-    const testModeSelect = document.getElementById("testMode");
-    const rampUpFields = document.getElementById("rampUpFields");
-    const linearOptions = document.getElementById("linearOptions");
-
-    function toggleTestModeOptions() {
-        const mode = testModeSelect.value;
-
-        rampUpFields.style.display =
-            mode === "RAMP_UP_TPS_PER_TERMINAL" ? "block" : "none";
-
-        linearOptions.style.display =
-            mode === "LINEAR_TPS_PER_TERMINAL" ? "block" : "none";
-    }
-
-    testModeSelect.addEventListener("change", toggleTestModeOptions);
 </script>
 </body>
 </html>
